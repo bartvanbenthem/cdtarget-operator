@@ -1,4 +1,5 @@
 # Continues Deployment Target - Operator
+Allow teams to add egress targets trough self-service, without delegating full network policy permissions within the team namespace.
 
 ## Operator Design
 

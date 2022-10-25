@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 
@@ -33,11 +32,6 @@ import (
 func (r *CDTargetReconciler) networkPolicyForCDTarget(t *cnadv1alpha1.CDTarget, portList []int32) *netv1.NetworkPolicy {
 	ls := labelsForCDTarget(t.Name)
 	peers := peersForCDTarget(t.Spec.IP)
-
-	if len(portList) == 0 {
-		portList = append(portList, 1)
-		log.Printf("%v", portList)
-	}
 	ports := portsForCDTarget(portList)
 
 	net := netv1.NetworkPolicy{

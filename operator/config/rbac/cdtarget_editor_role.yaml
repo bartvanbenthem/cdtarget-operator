@@ -1,0 +1,24 @@
+# permissions for end users to edit cdtargets.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cdtarget-editor-role
+rules:
+- apiGroups:
+  - cnad.gofound.nl
+  resources:
+  - cdtargets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - cnad.gofound.nl
+  resources:
+  - cdtargets/status
+  verbs:
+  - get

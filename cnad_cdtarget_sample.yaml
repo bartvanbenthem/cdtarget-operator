@@ -1,0 +1,11 @@
+apiVersion: cnad.gofound.nl/v1alpha1
+kind: CDTarget
+metadata:
+  name: cdtarget-sample
+  namespace: test
+spec:
+  podSelector:
+    tier: medium 
+  ip:
+  - 10.0.0.1
+  - 10.0.0.2

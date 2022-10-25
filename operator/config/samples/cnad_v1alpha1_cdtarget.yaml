@@ -1,0 +1,6 @@
+apiVersion: cnad.gofound.nl/v1alpha1
+kind: CDTarget
+metadata:
+  name: cdtarget-sample
+spec:
+  # TODO(user): Add fields here

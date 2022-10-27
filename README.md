@@ -59,13 +59,8 @@ type CDTargetSpec struct {
 }
 
 type CDTargetStatus struct {
-	// Policy contains the name of the CDTarget network policy
-	// this verrifies the CDTarget network policy creation
-	Policy string `json:"policy,omitempty"`
-	// Synced compares the IPs specified in the CR
-	// with the IPs in the actual CDTarget network policy
-	// when both are equal the Synced status is set to TRUE
-	Synced bool `json:"synced,omitempty"`
+	// Conditions lists the most recent status condition updates
+	Conditions []metav1.Condition `json:"conditions"`
 }
 ```
 
@@ -198,7 +193,7 @@ make manifests
 # docker and github repo username
 export USERNAME='bartvanbenthem'
 # image and bundle version
-export VERSION=0.1.3
+export VERSION=0.1.6
 # operator repo and name
 export OPERATOR_NAME='cdtarget-operator'
 
@@ -215,7 +210,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: cdtarget-ports
-  namespace: cdtarget-operator-system
+  namespace: cdtarget-operator
 data:
   ports: | 
     443

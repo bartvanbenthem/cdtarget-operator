@@ -74,7 +74,7 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	var ports []int32
 	cm := v1.ConfigMap{}
 	err = r.Get(ctx, types.NamespacedName{Name: "cdtarget-ports",
-		Namespace: "cdtarget-operator-system"}, &cm)
+		Namespace: "cdtarget-operator"}, &cm)
 	if err != nil && errors.IsNotFound(err) {
 		logger.Error(err, "Failed to get ConfigMap cdtarget-ports")
 		return ctrl.Result{}, err

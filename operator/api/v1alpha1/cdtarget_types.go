@@ -33,13 +33,8 @@ type CDTargetSpec struct {
 
 // CDTargetStatus defines the observed state of CDTarget
 type CDTargetStatus struct {
-	// Policy contains the name of the CDTarget network policy
-	// this verrifies the CDTarget network policy creation
-	Policy string `json:"policy,omitempty"`
-	// Synced compares the IPs specified in the CR
-	// with the IPs in the actual CDTarget network policy
-	// when both are equal the Synced status is set to TRUE
-	Synced bool `json:"synced,omitempty"`
+	// Conditions lists the most recent status condition updates
+	Conditions []metav1.Condition `json:"conditions"`
 }
 
 //+kubebuilder:object:root=true

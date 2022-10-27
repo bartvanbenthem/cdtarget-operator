@@ -77,11 +77,13 @@ func getPortsFromConfigMap(configmap v1.ConfigMap) ([]int32, error) {
 	ports := strings.Split(portList, "\n")
 
 	for _, p := range ports {
-		i, err := strconv.Atoi(p)
-		if err != nil {
-			return iList, err
+		if len(p) != 0 {
+			i, err := strconv.Atoi(p)
+			if err != nil {
+				return iList, err
+			}
+			iList = append(iList, int32(i))
 		}
-		iList = append(iList, int32(i))
 	}
 
 	return iList, nil

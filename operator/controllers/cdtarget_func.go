@@ -71,7 +71,7 @@ func peersForCDTarget(list []string) []netv1.NetworkPolicyPeer {
 	return peers
 }
 
-func getPortsFromConfigMap(configmap v1.ConfigMap) ([]int32, error) {
+func getPortsFromConfigMap(configmap *v1.ConfigMap) ([]int32, error) {
 	var iList []int32
 	portList := configmap.Data["ports"]
 	ports := strings.Split(portList, "\n")

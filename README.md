@@ -169,10 +169,11 @@ Logs, Events + status updates
 ``` yaml
 status:
   conditions:
-    - type: Ready
-      status: "True"
-      lastProbeTime: null
-      lastTransitionTime: 2022-01-01T00:00:00Z
+  - lastTransitionTime: 2022-01-01T00:00:00Z
+    message: reconciling message
+    reason: event
+    status: "False"/"True"
+    type: ReconcileSuccess
 ```
 
 ## Scaffolding parameters
@@ -193,7 +194,7 @@ make manifests
 # docker and github repo username
 export USERNAME='bartvanbenthem'
 # image and bundle version
-export VERSION=0.1.9
+export VERSION=0.2.15
 # operator repo and name
 export OPERATOR_NAME='cdtarget-operator'
 

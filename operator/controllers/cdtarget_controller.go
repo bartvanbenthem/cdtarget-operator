@@ -18,13 +18,21 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"time"
 
+	"github.com/bartvanbenthem/cdtarget-operator/assets"
+	"github.com/bartvanbenthem/cdtarget-operator/controllers/metrics"
+	apiv2 "github.com/operator-framework/api/pkg/operators/v2"
+	"github.com/operator-framework/operator-lib/conditions"
 	v1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -42,7 +50,7 @@ type CDTargetReconciler struct {
 //+kubebuilder:rbac:groups=cnad.gofound.nl,resources=cdtargets/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=cnad.gofound.nl,resources=cdtargets/finalizers,verbs=update
 //+kubebuilder:rbac:groups=networking.k8s.io,resources=networkpolicies,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
+//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -54,69 +62,120 @@ type CDTargetReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.12.2/pkg/reconcile
 func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	metrics.ReconcilesTotal.Inc()
 	logger := log.FromContext(ctx)
 
 	// Fetch CDTarget object if it exists
-	cdt := cnadv1alpha1.CDTarget{}
-	err := r.Get(ctx, req.NamespacedName, &cdt)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			logger.Info("CDTarget resource not found. Ignoring since object must be deleted")
-			// Exit reconciliation as the object has been deleted
-			return ctrl.Result{}, nil
-		}
-		logger.Error(err, "Failed to get CDTarget")
-		// Requeue reconciliation as we were unable to fetch the object
-		return ctrl.Result{}, err
+	operatorCR := &cnadv1alpha1.CDTarget{}
+	err := r.Get(ctx, req.NamespacedName, operatorCR)
+	if err != nil && errors.IsNotFound(err) {
+		logger.Info("Operator CDTArget resource object not found.")
+		return ctrl.Result{}, nil
+	} else if err != nil {
+		logger.Error(err, "Error getting operator CDTarget resource object")
+		meta.SetStatusCondition(&operatorCR.Status.Conditions, metav1.Condition{
+			Type:               "ReconcileSuccess",
+			Status:             metav1.ConditionFalse,
+			Reason:             cnadv1alpha1.ReasonCRNotAvailable,
+			LastTransitionTime: metav1.NewTime(time.Now()),
+			Message:            fmt.Sprintf("unable to get operator custom resource: %s", err.Error()),
+		})
+		return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
 	}
 
-	// fetch ports from configmap
-	var ports []int32
-	cm := v1.ConfigMap{}
+	// Fetch ConfigMap object if it exists
+	cm := &v1.ConfigMap{}
 	err = r.Get(ctx, types.NamespacedName{Name: "cdtarget-ports",
-		Namespace: "cdtarget-operator"}, &cm)
+		Namespace: "cdtarget-operator"}, cm)
 	if err != nil && errors.IsNotFound(err) {
-		logger.Error(err, "Failed to get ConfigMap cdtarget-ports")
-		return ctrl.Result{}, err
+		logger.Info("Failed getting existing ConfigMap cdtarget-ports")
+		logger.Info("Creating ConfigMap cdtarget-ports from assets manifests")
+		cm = assets.GetConfigMapFromFile("manifests/cdtarget_ports.yaml")
+		err = r.Create(ctx, cm)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+	} else if err != nil {
+		logger.Error(err, "Error getting operator CDTarget resource object")
+		meta.SetStatusCondition(&operatorCR.Status.Conditions, metav1.Condition{
+			Type:               "ReconcileSuccess",
+			Status:             metav1.ConditionFalse,
+			Reason:             cnadv1alpha1.ReasonConfigMapNotAvailable,
+			LastTransitionTime: metav1.NewTime(time.Now()),
+			Message:            fmt.Sprintf("unable to configure ConfigMap cdtarget-ports: %s", err.Error()),
+		})
+		return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
 	}
-	ports, err = getPortsFromConfigMap(cm)
+	// fetch ports from configmap
+	ports, err := getPortsFromConfigMap(cm)
 	if err != nil {
 		logger.Error(err, "Failed to parse ports")
 	}
 
 	// Fetch NetworkPolicy object if it exists
-	found := netv1.NetworkPolicy{}
-	err = r.Get(ctx, types.NamespacedName{Name: cdt.Name, Namespace: cdt.Namespace}, &found)
+	netpol := &netv1.NetworkPolicy{}
+	create := false
+	err = r.Get(ctx, types.NamespacedName{Name: operatorCR.Name, Namespace: operatorCR.Namespace}, netpol)
 	if err != nil && errors.IsNotFound(err) {
-		net := r.networkPolicyForCDTarget(&cdt, ports)
-		logger.Info("Creating a new NetworkPolicy", "NetworkPolicy.Namespace",
-			net.Namespace, "NetworkPolicy.Name", net.Name)
-		err = r.Create(ctx, net)
-		if err != nil {
-			logger.Error(err, "Failed to create new NetworkPolicy",
-				"NetworkPolicy.Namespace", net.Namespace,
-				"NetworkPolicy.Name", net.Name)
-			return ctrl.Result{}, err
-		}
-		// Deployment created successfully - return and requeue
-		return ctrl.Result{RequeueAfter: time.Minute}, nil
+		create = true
 	} else if err != nil {
-		logger.Error(err, "Failed to get NetworkPolicy")
-		return ctrl.Result{}, err
-	} else {
-		net := r.networkPolicyForCDTarget(&cdt, ports)
-		logger.Info("Updating NetworkPolicy", "NetworkPolicy.Namespace",
-			net.Namespace, "NetworkPolicy.Name", net.Name)
-		r.Update(ctx, net)
-		if err != nil {
-			logger.Error(err, "Failed to Update NetworkPolicy",
-				"NetworkPolicy.Namespace", net.Namespace,
-				"NetworkPolicy.Name", net.Name)
-			return ctrl.Result{}, err
-		}
+		logger.Error(err, "Error getting existing CDTArget NetworkPolicy.")
+		meta.SetStatusCondition(&operatorCR.Status.Conditions, metav1.Condition{
+			Type:               "ReconcileSuccess",
+			Status:             metav1.ConditionFalse,
+			Reason:             cnadv1alpha1.ReasonNetworkPolicyNotAvailable,
+			LastTransitionTime: metav1.NewTime(time.Now()),
+			Message:            fmt.Sprintf("unable to get operand NetworkPolicy: %s", err.Error()),
+		})
+		return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
 	}
 
-	return ctrl.Result{}, nil
+	netpol = r.networkPolicyForCDTarget(operatorCR, ports)
+	ctrl.SetControllerReference(operatorCR, netpol, r.Scheme)
+
+	if create {
+		err = r.Create(ctx, netpol)
+	} else {
+		err = r.Update(ctx, netpol)
+	}
+
+	if err != nil {
+		meta.SetStatusCondition(&operatorCR.Status.Conditions, metav1.Condition{
+			Type:               "ReconcileSuccess",
+			Status:             metav1.ConditionFalse,
+			Reason:             cnadv1alpha1.ReasonOperandNetworkPolicyFailed,
+			LastTransitionTime: metav1.NewTime(time.Now()),
+			Message:            fmt.Sprintf("unable to update operand NetworkPolicy: %s", err.Error()),
+		})
+		return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
+	}
+
+	meta.SetStatusCondition(&operatorCR.Status.Conditions, metav1.Condition{
+		Type:               "ReconcileSuccess",
+		Status:             metav1.ConditionTrue,
+		Reason:             cnadv1alpha1.ReasonSucceeded,
+		LastTransitionTime: metav1.NewTime(time.Now()),
+		Message:            "operator successfully reconciling",
+	})
+	r.Status().Update(ctx, operatorCR)
+
+	// OLM condition reporting
+	condition, err := conditions.InClusterFactory{Client: r.Client}.
+		NewCondition(apiv2.ConditionType(apiv2.Upgradeable))
+
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	err = condition.Set(ctx, metav1.ConditionTrue,
+		conditions.WithReason("OperatorUpgradeable"),
+		conditions.WithMessage("The operator is currently upgradeable"))
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
+
 }
 
 // SetupWithManager sets up the controller with the Manager.

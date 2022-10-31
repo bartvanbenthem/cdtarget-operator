@@ -1,0 +1,48 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: '[]'
+    capabilities: Basic Install
+  name: operator.v0.0.0
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: CDTarget is the Schema for the cdtargets API
+      displayName: CDTarget
+      kind: CDTarget
+      name: cdtargets.cnad.gofound.nl
+      version: v1alpha1
+  description: continues deployment target operator
+  displayName: cdtarget
+  icon:
+  - base64data: ""
+    mediatype: ""
+  install:
+    spec:
+      deployments: null
+    strategy: ""
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - cicd
+  links:
+  - name: Operator
+    url: https://operator.domain
+  maintainers:
+  - email: mail@gofound.nl
+    name: bart
+  maturity: alpha
+  provider:
+    name: gofound
+    url: gofound.nl
+  version: 0.0.0

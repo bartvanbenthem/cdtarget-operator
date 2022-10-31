@@ -189,19 +189,78 @@ make generate
 make manifests
 ```
 
-# Build & Deploy
+# Build Operator image
 ```bash
 # docker and github repo username
 export USERNAME='bartvanbenthem'
 # image and bundle version
-export VERSION=0.2.15
+export VERSION=0.2.4
 # operator repo and name
 export OPERATOR_NAME='cdtarget-operator'
 
 #######################################################
-# Build the operator
+# Build the operator image
 make docker-build docker-push IMG=docker.io/$USERNAME/$OPERATOR_NAME:v$VERSION
+```
 
+## Operator lifecycle manager Deployment
+```bash
+#######################################################
+# install OLM (if not already present)
+operator-sdk olm install
+operator-sdk olm status
+
+#######################################################
+# Build the OLM bundle
+make bundle IMG=docker.io/$USERNAME/$OPERATOR_NAME:v$VERSION   
+make bundle-build bundle-push BUNDLE_IMG=docker.io/$USERNAME/$OPERATOR_NAME-bundle:v$VERSION
+```
+
+```bash
+# Deploy OLM bundle
+kubectl create ns 'cdtarget-operator'
+operator-sdk run bundle docker.io/$USERNAME/$OPERATOR_NAME-bundle:v$VERSION --namespace='cdtarget-operator'
+```
+
+```bash
+# configmap to specify the ports
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cdtarget-ports
+  namespace: cdtarget-operator
+data:
+  ports: | 
+    443
+    22
+    5986
+    5432
+EOF
+
+#######################################################
+# test cdtarget CR 
+kubectl create ns test
+kubectl -n test apply -f ../cnad_cdtarget_sample.yaml
+kubectl -n test describe cdtarget cdtarget-sample
+kubectl -n test describe networkpolicies cdtarget-sample
+```
+
+### Remove CR, Operator bundle and OLM
+```bash
+# cleanup test deployment
+kubectl -n test delete -f ../cnad_cdtarget_sample.yaml
+kubectl delete ns test
+# cleanup OLM bundle & OLM installation
+operator-sdk cleanup operator --delete-all --namespace='cdtarget-operator'
+kubectl delete ns 'cdtarget-operator'
+# uninstall OLM
+operator-sdk olm uninstall
+```
+
+
+## Manual Deployment (instead of OLM deployment)
+```bash
 #######################################################
 # test and deploy the operator
 make deploy IMG=docker.io/$USERNAME/$OPERATOR_NAME:v$VERSION
@@ -228,7 +287,7 @@ kubectl -n test describe cdtarget cdtarget-sample
 kubectl -n test describe networkpolicies cdtarget-sample
 ```
 
-## Remove Operator, CRD and CR
+### Manual Remove Operator, CRD and CR
 ```bash
 # cleanup test deployment
 kubectl -n test delete -f ../cnad_cdtarget_sample.yaml

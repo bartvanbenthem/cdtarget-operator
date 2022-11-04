@@ -285,9 +285,16 @@ EOF
 #######################################################
 # test cdtarget CR 
 kubectl create ns test
+# secret containing token
+source ../../00-ENV/env.sh # personal setup to inject PAT!!
+kubectl -n test create secret generic cdtarget-token \
+                  --from-literal=AZP_TOKEN=$PAT
+# apply cdtarget resource
 kubectl -n test apply -f ../cnad_cdtarget_sample.yaml
-kubectl -n test describe cdtarget cdtarget-sample
-kubectl -n test describe networkpolicies cdtarget-sample
+kubectl -n test describe cdtarget cdtarget-agent
+# test
+kubectl -n test describe networkpolicies cdtarget-agent
+kubectl -n test describe deployment cdtarget-agent
 ```
 
 ### Manual Remove Operator, CRD and CR

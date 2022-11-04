@@ -8,7 +8,7 @@ spec:
   minReplicaCount: 1
   maxReplicaCount: 3
   config:
-    url: https://dev.azure.com/DevOps-SST
+    url: https://dev.azure.com/ORGANIZATION
     poolName: poc-pool
     agentName: cdtarget-agent
   tokenRef: cdtarget-token

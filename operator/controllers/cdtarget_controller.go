@@ -25,6 +25,8 @@ import (
 	"github.com/bartvanbenthem/cdtarget-operator/controllers/metrics"
 	apiv2 "github.com/operator-framework/api/pkg/operators/v2"
 	"github.com/operator-framework/operator-lib/conditions"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -51,6 +53,8 @@ type CDTargetReconciler struct {
 //+kubebuilder:rbac:groups=cnad.gofound.nl,resources=cdtargets/finalizers,verbs=update
 //+kubebuilder:rbac:groups=networking.k8s.io,resources=networkpolicies,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;
+//+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch
 //+kubebuilder:rbac:groups=operators.coreos.com,resources=operatorconditions,verbs=get;list;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -84,15 +88,15 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
 	}
 
-	// Fetch ConfigMap object if it exists
-	cm := &v1.ConfigMap{}
+	// Fetch ports ConfigMap object if it exists
+	cmport := &v1.ConfigMap{}
 	err = r.Get(ctx, types.NamespacedName{Name: "cdtarget-ports",
-		Namespace: "cdtarget-operator"}, cm)
+		Namespace: "cdtarget-operator"}, cmport)
 	if err != nil && errors.IsNotFound(err) {
 		logger.Info("Failed getting existing ConfigMap cdtarget-ports")
 		logger.Info("Creating ConfigMap cdtarget-ports from assets manifests")
-		cm = assets.GetConfigMapFromFile("manifests/cdtarget_ports.yaml")
-		err = r.Create(ctx, cm)
+		cmport = assets.GetConfigMapFromFile("manifests/cdtarget_ports.yaml")
+		err = r.Create(ctx, cmport)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -108,7 +112,7 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
 	}
 	// fetch ports from configmap
-	ports, err := getPortsFromConfigMap(cm)
+	ports, err := getPortsFromConfigMap(cmport)
 	if err != nil {
 		logger.Error(err, "Failed to parse ports")
 	}
@@ -140,6 +144,61 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		err = r.Update(ctx, netpol)
 	}
 
+	// Fetch cdtarget-config ConfigMap object if it exists
+	cmcfg := &v1.ConfigMap{}
+	create = false
+	err = r.Get(ctx, types.NamespacedName{Name: "cdtarget-config", Namespace: operatorCR.Namespace}, cmcfg)
+	if err != nil && errors.IsNotFound(err) {
+		create = true
+	} else if err != nil {
+		logger.Error(err, "Error getting CDTArget ConfigMap.")
+		meta.SetStatusCondition(&operatorCR.Status.Conditions, metav1.Condition{
+			Type:               "ReconcileSuccess",
+			Status:             metav1.ConditionFalse,
+			Reason:             cnadv1alpha1.ReasonConfigMapNotAvailable,
+			LastTransitionTime: metav1.NewTime(time.Now()),
+			Message:            fmt.Sprintf("unable to get operand ConfigMap: %s", err.Error()),
+		})
+		return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
+	}
+
+	cmcfg = r.configMapForCDTarget(operatorCR)
+	ctrl.SetControllerReference(operatorCR, cmcfg, r.Scheme)
+
+	if create {
+		err = r.Create(ctx, cmcfg)
+	} else {
+		err = r.Update(ctx, cmcfg)
+	}
+
+	// Fetch agent Deployment object if it exists
+	deployment := &appsv1.Deployment{}
+	create = false
+	err = r.Get(ctx, types.NamespacedName{Name: operatorCR.Name, Namespace: operatorCR.Namespace}, deployment)
+	if err != nil && errors.IsNotFound(err) {
+		create = true
+	} else if err != nil {
+		logger.Error(err, "Error getting CDTArget Agent Deployment.")
+		meta.SetStatusCondition(&operatorCR.Status.Conditions, metav1.Condition{
+			Type:               "ReconcileSuccess",
+			Status:             metav1.ConditionFalse,
+			Reason:             cnadv1alpha1.ReasonDeploymentNotAvailable,
+			LastTransitionTime: metav1.NewTime(time.Now()),
+			Message:            fmt.Sprintf("unable to get operand Deployment: %s", err.Error()),
+		})
+		return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
+	}
+
+	deployment = r.deploymentForCDTarget(operatorCR)
+	ctrl.SetControllerReference(operatorCR, deployment, r.Scheme)
+
+	if create {
+		err = r.Create(ctx, deployment)
+	} else {
+		err = r.Update(ctx, deployment)
+	}
+
+	// Finalize reconcile loop and status conditions
 	if err != nil {
 		meta.SetStatusCondition(&operatorCR.Status.Conditions, metav1.Condition{
 			Type:               "ReconcileSuccess",
@@ -184,5 +243,7 @@ func (r *CDTargetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&cnadv1alpha1.CDTarget{}).
 		Owns(&netv1.NetworkPolicy{}).
+		Owns(&appsv1.Deployment{}).
+		Owns(&corev1.ConfigMap{}).
 		Complete(r)
 }

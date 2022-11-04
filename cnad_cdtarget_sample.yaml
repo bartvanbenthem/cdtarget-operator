@@ -1,11 +1,20 @@
 apiVersion: cnad.gofound.nl/v1alpha1
 kind: CDTarget
 metadata:
-  name: cdtarget-sample
+  name: cdtarget-agent
   namespace: test
 spec:
+  agentImage: bartvanbenthem/agent:latest
+  minReplicaCount: 1
+  maxReplicaCount: 3
+  config:
+    url: https://dev.azure.com/DevOps-SST
+    poolName: poc-pool
+    agentName: cdtarget-agent
+  tokenRef: cdtarget-token
+  proxyRef: cdtarget-proxy
   podSelector:
-    tier: medium 
+    app: cdtarget-agent 
   ip:
   - 10.0.0.1
   - 10.0.0.2

@@ -34,17 +34,56 @@ spec:
           spec:
             description: CDTargetSpec defines the desired state of CDTarget
             properties:
+              agentImage:
+                description: pipeline agent image
+                type: string
+              config:
+                description: AzureDevPortal is configuring the Azure DevOps pool settings
+                  of the Agent by using additional environment variables.
+                properties:
+                  agentName:
+                    type: string
+                  mtuValue:
+                    description: Allow specifying MTU value for networks used by container
+                      jobs useful for docker-in-docker scenarios in k8s cluster
+                    type: string
+                  poolName:
+                    type: string
+                  url:
+                    type: string
+                  workDir:
+                    type: string
+                required:
+                - poolName
+                - url
+                type: object
               ip:
                 description: IP is a slice of string that contains all the CDTarget
                   IPs
                 items:
                   type: string
                 type: array
+              maxReplicaCount:
+                format: int32
+                type: integer
+              minReplicaCount:
+                format: int32
+                type: integer
               podSelector:
                 additionalProperties:
                   type: string
                 description: specify the pod selector key value pair
                 type: object
+              proxyRef:
+                description: reference to secret that contains the the Proxy settings
+                type: string
+              tokenRef:
+                description: reference to secret that contains the PAT
+                type: string
+            required:
+            - podSelector
+            - proxyRef
+            - tokenRef
             type: object
           status:
             description: CDTargetStatus defines the observed state of CDTarget

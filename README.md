@@ -1,5 +1,5 @@
 # Continues Deployment Target - Operator
-Allow teams to add egress targets trough self-service, without delegating full network policy permissions within the team namespace.
+Automate the configuration & lifecycle of Azure self-hosted pipelines agents and enable self-service for adding egress targets, without the need of delegating full network policy permissions to the namespace administrator. Event driven autoscaling is automatically enabled trough standard KEDA and Azure pipelines integrations.
 
 ## Operator Design
 
@@ -12,7 +12,7 @@ Allow teams to add egress targets trough self-service, without delegating full n
 * Failure reporting
 
 ###  Describing the problem
-For me as namespace administrator (cluster user) the CRUD functionality on network policy objects are unauthorized and can only be changed by the cluster administrators. We need to be able to add target IP blocks ourselves to a specified set (specified by the admins) of allowed egress ports trough a Custom Resource. An Operator should automatically update the specific network policy with all the IP blocks defined in the Custom resource.
+For us as namespace administrators (cluster users) the CRUD functionality on network policy objects are unauthorized by security design and can only be changed by the cluster administrators. To enable end tot end automation, we need the abillity to add target IPs ourselves to a specified set of allowed egress ports trough a Custom Resource, the ports are specified by the the cluster administrators from one central config. An Operator should automatically create or update a network policy containing the specified IPs defined in the Custom resource. The operator should als configure and manage the lifecycle of the self-hosted pipeline agents and simplify the enablement of event driven autoscaling.  
 
 ### Designing the API and a CRD
 
@@ -50,91 +50,78 @@ type IPBlock struct {
 
 #### CDTarget types
 ```Go
+// CDTargetSpec defines the desired state of CDTarget
 type CDTargetSpec struct {
 	// IP is a slice of string that contains all the CDTarget IPs
-  // each IP is added as an /32 IPBlock CIDR value of the network policy 
-  IP []string `json:"ip,omitempty"`
-  // specify the pod selector key value pair
-	PodSelector map[string]string `json:"podSelector,omitempty"`
+	IP []string `json:"ip,omitempty"`
+	// specify the pod selector key value pair
+	PodSelector map[string]string `json:"podSelector"`
+	// pipeline agent image
+	AgentImage string `json:"agentImage,omitempty"`
+	// +optional
+	MinReplicaCount *int32 `json:"minReplicaCount,omitempty"`
+	// +optional
+	MaxReplicaCount *int32 `json:"maxReplicaCount,omitempty"`
+	// reference to secret that contains the the Proxy settings
+	ProxyRef string `json:"proxyRef"`
+	// reference to secret that contains the PAT
+	TokenRef string `json:"tokenRef"`
+	// AzureDevPortal is configuring the Azure DevOps pool settings of the Agent
+	// by using additional environment variables.
+	Config AgentConfig `json:"config,omitempty"`
 }
 
+// CDTargetStatus defines the observed state of CDTarget
 type CDTargetStatus struct {
 	// Conditions lists the most recent status condition updates
 	Conditions []metav1.Condition `json:"conditions"`
+}
+
+// control the pool and agent work directory
+type AgentConfig struct {
+	URL       string `json:"url"`
+	PoolName  string `json:"poolName"`
+	AgentName string `json:"agentName,omitempty"`
+	WorkDir   string `json:"workDir,omitempty"`
+	// Allow specifying MTU value for networks used by container jobs
+	// useful for docker-in-docker scenarios in k8s cluster
+	MTUValue string `json:"mtuValue,omitempty"`
 }
 ```
 
 #### Custom Resource schema
 ```yaml
-apiVersion: v1alpha1
+apiVersion: cnad.gofound.nl/v1alpha1
 kind: CDTarget
 metadata:
-  name: example
-  namespace: example
+  name: cdtarget-sample
+  namespace: test
 spec:
+  agentImage: bartvanbenthem/agent:latest
+  minReplicaCount: 1
+  maxReplicaCount: 3
+  config:
+    url: https://dev.azure.com/ORGANIZATION
+    poolName: poc-pool
+    agentName: agent-sample
+  tokenRef: cdtarget-token
+  proxyRef: cdtarget-proxy
   podSelector:
-    key: value 
+    app: cdtarget-agent 
   ip:
   - 10.0.0.1
   - 10.0.0.2
     ...
 ```
 
-#### Custom Resource Definition schema
-```yaml
-apiVersion: apiextensions.k8s.io/v1
-kind: CustomResourceDefinition
-metadata:
-  name: cdtargets.cnad.gofound.nl
-spec:
-  group: cnad.gofound.nl
-  names:
-    kind: CDTarget
-    listKind: CDTargetList
-    plural: cdtargets
-    singular: cdtarget
-  scope: Namespaced
-  versions:
-  - name: v1alpha1
-    schema:
-      openAPIV3Schema:
-        description: ''
-        properties:
-          apiVersion:
-            description: ''
-            type: string
-          kind:
-            description: ''
-            type: string
-          metadata:
-            type: object
-          spec:
-            description: ''
-            properties:
-              ip:
-                description: ''
-                items:
-                  type: string
-                type: array
-            type: object
-          status:
-            description: ''
-            properties:
-              policy:
-                description: ''
-              synced:
-                description: ''
-                type: boolean
-            type: object
-        type: object
-    served: true
-    storage: true
-```
-
-### Required Resources
+### Required Resources & Permissions
 What other resources are required:
 ```Go
 //+kubebuilder:rbac:groups=networking.k8s.io,resources=networkpolicies,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;
+//+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch
+//+kubebuilder:rbac:groups=operators.coreos.com,resources=operatorconditions,verbs=get;list;watch
 ```
 
 ### Target reconciliation loop design
@@ -194,7 +181,7 @@ make manifests
 # docker and github repo username
 export USERNAME='bartvanbenthem'
 # image and bundle version
-export VERSION=0.2.4
+export VERSION=0.2.6
 # operator repo and name
 export OPERATOR_NAME='cdtarget-operator'
 
@@ -241,9 +228,25 @@ EOF
 #######################################################
 # test cdtarget CR 
 kubectl create ns test
+# secret containing token
+source ../../00-ENV/env.sh # personal setup to inject PAT!!
+kubectl -n test create secret generic cdtarget-token \
+                  --from-literal=AZP_TOKEN=$PAT
+# secret containing proxy settings
+kubectl -n test create secret generic cdtarget-proxy \
+                  --from-literal=PROXY_USER='' \
+                  --from-literal=PROXY_PW='' \
+                  --from-literal=PROXY_URL='' \
+                  --from-literal=HTTP_PROXY='' \
+                  --from-literal=HTTPS_PROXY='' \
+                  --from-literal=FTP_PROXY='' \
+                  --from-literal=NO_PROXY=''  
+# apply cdtarget resource
 kubectl -n test apply -f ../cnad_cdtarget_sample.yaml
-kubectl -n test describe cdtarget cdtarget-sample
-kubectl -n test describe networkpolicies cdtarget-sample
+kubectl -n test describe cdtarget cdtarget-agent
+# test
+kubectl -n test describe networkpolicies cdtarget-agent
+kubectl -n test describe deployment cdtarget-agent
 ```
 
 ### Remove CR, Operator bundle and OLM

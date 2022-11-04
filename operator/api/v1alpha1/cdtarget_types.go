@@ -26,7 +26,8 @@ const (
 	ReasonCRNotAvailable             = "OperatorResourceNotAvailable"
 	ReasonNetworkPolicyNotAvailable  = "OperandNetworkPolicyNotAvailable"
 	ReasonOperandNetworkPolicyFailed = "OperandNetworkPolicyFailed"
-	ReasonConfigMapNotAvailable      = "ReasonConfigMapNotAvailable"
+	ReasonConfigMapNotAvailable      = "ConfigMapNotAvailable"
+	ReasonDeploymentNotAvailable     = "DeploymentNotAvailable"
 	ReasonSucceeded                  = "OperatorSucceeded"
 )
 
@@ -35,13 +36,37 @@ type CDTargetSpec struct {
 	// IP is a slice of string that contains all the CDTarget IPs
 	IP []string `json:"ip,omitempty"`
 	// specify the pod selector key value pair
-	PodSelector map[string]string `json:"podSelector,omitempty"`
+	PodSelector map[string]string `json:"podSelector"`
+	// pipeline agent image
+	AgentImage string `json:"agentImage,omitempty"`
+	// +optional
+	MinReplicaCount *int32 `json:"minReplicaCount,omitempty"`
+	// +optional
+	MaxReplicaCount *int32 `json:"maxReplicaCount,omitempty"`
+	// reference to secret that contains the the Proxy settings
+	ProxyRef string `json:"proxyRef"`
+	// reference to secret that contains the PAT
+	TokenRef string `json:"tokenRef"`
+	// AzureDevPortal is configuring the Azure DevOps pool settings of the Agent
+	// by using additional environment variables.
+	Config AgentConfig `json:"config,omitempty"`
 }
 
 // CDTargetStatus defines the observed state of CDTarget
 type CDTargetStatus struct {
 	// Conditions lists the most recent status condition updates
 	Conditions []metav1.Condition `json:"conditions"`
+}
+
+// control the pool and agent work directory
+type AgentConfig struct {
+	URL       string `json:"url"`
+	PoolName  string `json:"poolName"`
+	AgentName string `json:"agentName,omitempty"`
+	WorkDir   string `json:"workDir,omitempty"`
+	// Allow specifying MTU value for networks used by container jobs
+	// useful for docker-in-docker scenarios in k8s cluster
+	MTUValue string `json:"mtuValue,omitempty"`
 }
 
 //+kubebuilder:object:root=true

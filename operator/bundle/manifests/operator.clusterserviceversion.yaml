@@ -16,7 +16,7 @@ metadata:
     capabilities: Basic Install
     operators.operatorframework.io/builder: operator-sdk-v1.24.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
-  name: operator.v0.2.4
+  name: operator.v0.2.6
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -46,6 +46,18 @@ spec:
           - list
           - watch
         - apiGroups:
+          - apps
+          resources:
+          - deployments
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
           - cnad.gofound.nl
           resources:
           - cdtargets
@@ -71,6 +83,14 @@ spec:
           - get
           - patch
           - update
+        - apiGroups:
+          - ""
+          resources:
+          - pods
+          verbs:
+          - get
+          - list
+          - watch
         - apiGroups:
           - networking.k8s.io
           resources:
@@ -151,7 +171,7 @@ spec:
                 - --leader-elect
                 command:
                 - /manager
-                image: docker.io/bartvanbenthem/cdtarget-operator:v0.2.4
+                image: docker.io/bartvanbenthem/cdtarget-operator:v0.2.6
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -237,4 +257,4 @@ spec:
   provider:
     name: gofound
     url: gofound.nl
-  version: 0.2.4
+  version: 0.2.6

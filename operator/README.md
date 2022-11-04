@@ -1,44 +1,100 @@
 # operator
-// TODO(user): Add simple overview of use/purpose
+Azure Pipelines Continues Deployment Target Operator
 
 ## Description
-// TODO(user): An in-depth paragraph about your project and overview of use
+Automate the configuration & lifecycle of Azure self-hosted pipelines agents and enable self-service for adding egress targets, without the need of delegating full network policy permissions to the namespace administrator. Event driven autoscaling is automatically enabled trough standard KEDA and Azure pipelines integrations.
+
+###  Describing the problem
+For us as namespace administrators (cluster users) the CRUD functionality on network policy objects are unauthorized by security design and can only be changed by the cluster administrators. To enable end tot end automation, we need the abillity to add target IPs ourselves to a specified set of allowed egress ports trough a Custom Resource, the ports are specified by the the cluster administrators from one central config. An Operator should automatically create or update a network policy containing the specified IPs defined in the Custom resource. The operator should als configure and manage the lifecycle of the self-hosted pipeline agents and simplify the enablement of event driven autoscaling.
 
 ## Getting Started
 You’ll need a Kubernetes cluster to run against. You can use [KIND](https://sigs.k8s.io/kind) to get a local cluster for testing, or run against a remote cluster.
 **Note:** Your controller will automatically use the current context in your kubeconfig file (i.e. whatever cluster `kubectl cluster-info` shows).
 
 ### Running on the cluster
-1. Install Instances of Custom Resources:
+#### Build Operator image
+```bash
+# docker and github repo username
+export USERNAME='user'
+# image and bundle version
+export VERSION=0.0.1
+# operator repo and name
+export OPERATOR_NAME='cdtarget-operator'
 
-```sh
-kubectl apply -f config/samples/
+#######################################################
+# Build the operator image
+make docker-build docker-push IMG=docker.io/$USERNAME/$OPERATOR_NAME:v$VERSION
 ```
 
-2. Build and push your image to the location specified by `IMG`:
-	
-```sh
-make docker-build docker-push IMG=<some-registry>/operator:tag
-```
-	
-3. Deploy the controller to the cluster with the image specified by `IMG`:
+#### Operator lifecycle manager Deployment
+```bash
+#######################################################
+# install OLM (if not already present)
+operator-sdk olm install
+operator-sdk olm status
 
-```sh
-make deploy IMG=<some-registry>/operator:tag
-```
-
-### Uninstall CRDs
-To delete the CRDs from the cluster:
-
-```sh
-make uninstall
+#######################################################
+# Build the OLM bundle
+make bundle IMG=docker.io/$USERNAME/$OPERATOR_NAME:v$VERSION   
+make bundle-build bundle-push BUNDLE_IMG=docker.io/$USERNAME/$OPERATOR_NAME-bundle:v$VERSION
 ```
 
-### Undeploy controller
-UnDeploy the controller to the cluster:
+```bash
+# Deploy OLM bundle
+kubectl create ns 'cdtarget-operator'
+operator-sdk run bundle docker.io/$USERNAME/$OPERATOR_NAME-bundle:v$VERSION --namespace='cdtarget-operator'
+```
 
-```sh
-make undeploy
+```bash
+# configmap to specify the ports
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cdtarget-ports
+  namespace: cdtarget-operator
+data:
+  ports: | 
+    443
+    22
+    5986
+    5432
+EOF
+
+#######################################################
+# test cdtarget CR 
+kubectl create ns test
+# secret containing token
+source ../../00-ENV/env.sh # personal setup to inject PAT!!
+kubectl -n test create secret generic cdtarget-token \
+                  --from-literal=AZP_TOKEN=$PAT
+# secret containing proxy settings
+kubectl -n test create secret generic cdtarget-proxy \
+                  --from-literal=PROXY_USER='' \
+                  --from-literal=PROXY_PW='' \
+                  --from-literal=PROXY_URL='' \
+                  --from-literal=HTTP_PROXY='' \
+                  --from-literal=HTTPS_PROXY='' \
+                  --from-literal=FTP_PROXY='' \
+                  --from-literal=NO_PROXY=''  
+# apply cdtarget resource
+kubectl -n test apply -f ../cnad_cdtarget_sample.yaml
+kubectl -n test describe cdtarget cdtarget-agent
+# test
+kubectl -n test describe networkpolicies cdtarget-agent
+kubectl -n test describe deployment cdtarget-agent
+```
+
+### Uninstall
+```bash
+# cleanup test deployment
+kubectl -n test delete -f ../cnad_cdtarget_sample.yaml
+kubectl delete ns test
+# cleanup OLM bundle & OLM installation
+operator-sdk cleanup operator --delete-all --namespace='cdtarget-operator'
+kubectl delete ns 'cdtarget-operator'
+# uninstall OLM
+opera
 ```
 
 ## Contributing
@@ -50,18 +106,6 @@ This project aims to follow the Kubernetes [Operator pattern](https://kubernetes
 It uses [Controllers](https://kubernetes.io/docs/concepts/architecture/controller/) 
 which provides a reconcile function responsible for synchronizing resources untile the desired state is reached on the cluster 
 
-### Test It Out
-1. Install the CRDs into the cluster:
-
-```sh
-make install
-```
-
-2. Run your controller (this will run in the foreground, so switch to a new terminal if you want to leave it running):
-
-```sh
-make run
-```
 
 **NOTE:** You can also run this in one step by running: `make install run`
 

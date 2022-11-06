@@ -144,6 +144,17 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		err = r.Update(ctx, netpol)
 	}
 
+	if err != nil {
+		meta.SetStatusCondition(&operatorCR.Status.Conditions, metav1.Condition{
+			Type:               "ReconcileSuccess",
+			Status:             metav1.ConditionFalse,
+			Reason:             cnadv1alpha1.ReasonOperandNetworkPolicyFailed,
+			LastTransitionTime: metav1.NewTime(time.Now()),
+			Message:            fmt.Sprintf("unable to update operand NetworkPolicy: %s", err.Error()),
+		})
+		return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
+	}
+
 	// Fetch cdtarget-config ConfigMap object if it exists
 	cmcfg := &v1.ConfigMap{}
 	create = false
@@ -169,6 +180,17 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		err = r.Create(ctx, cmcfg)
 	} else {
 		err = r.Update(ctx, cmcfg)
+	}
+
+	if err != nil {
+		meta.SetStatusCondition(&operatorCR.Status.Conditions, metav1.Condition{
+			Type:               "ReconcileSuccess",
+			Status:             metav1.ConditionFalse,
+			Reason:             cnadv1alpha1.ReasonOperandConfigMapFailed,
+			LastTransitionTime: metav1.NewTime(time.Now()),
+			Message:            fmt.Sprintf("unable to update operand ConfigMap: %s", err.Error()),
+		})
+		return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
 	}
 
 	// Fetch agent Deployment object if it exists
@@ -198,18 +220,18 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		err = r.Update(ctx, deployment)
 	}
 
-	// Finalize reconcile loop and status conditions
 	if err != nil {
 		meta.SetStatusCondition(&operatorCR.Status.Conditions, metav1.Condition{
 			Type:               "ReconcileSuccess",
 			Status:             metav1.ConditionFalse,
-			Reason:             cnadv1alpha1.ReasonOperandNetworkPolicyFailed,
+			Reason:             cnadv1alpha1.ReasonOperandDeploymentFailed,
 			LastTransitionTime: metav1.NewTime(time.Now()),
-			Message:            fmt.Sprintf("unable to update operand NetworkPolicy: %s", err.Error()),
+			Message:            fmt.Sprintf("unable to update operand Deployment: %s", err.Error()),
 		})
 		return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
 	}
 
+	// Finalize reconcile loop and set succesfull status condition
 	meta.SetStatusCondition(&operatorCR.Status.Conditions, metav1.Condition{
 		Type:               "ReconcileSuccess",
 		Status:             metav1.ConditionTrue,

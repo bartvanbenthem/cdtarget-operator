@@ -27,7 +27,9 @@ const (
 	ReasonNetworkPolicyNotAvailable  = "OperandNetworkPolicyNotAvailable"
 	ReasonOperandNetworkPolicyFailed = "OperandNetworkPolicyFailed"
 	ReasonConfigMapNotAvailable      = "ConfigMapNotAvailable"
+	ReasonOperandConfigMapFailed     = "OperandConfigMapFailed"
 	ReasonDeploymentNotAvailable     = "DeploymentNotAvailable"
+	ReasonOperandDeploymentFailed    = "OperandDeploymentFailed"
 	ReasonSucceeded                  = "OperatorSucceeded"
 )
 

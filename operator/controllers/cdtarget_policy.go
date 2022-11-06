@@ -26,39 +26,9 @@ import (
 	netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-func (r *CDTargetReconciler) networkPolicyForCDTarget(t *cnadv1alpha1.CDTarget, portList []int32) *netv1.NetworkPolicy {
-	ls := t.Spec.PodSelector
-	peers := peersForCDTarget(t.Spec.IP)
-	ports := portsForCDTarget(portList)
-
-	net := &netv1.NetworkPolicy{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      t.Name,
-			Namespace: t.Namespace,
-			Labels:    ls,
-		},
-		Spec: netv1.NetworkPolicySpec{
-			PodSelector: metav1.LabelSelector{
-				MatchLabels: t.Spec.PodSelector,
-			},
-			Egress: []netv1.NetworkPolicyEgressRule{{
-				Ports: ports,
-				To:    peers,
-			}},
-		},
-	}
-
-	// Set CDTarget instance as the owner and controller
-	ctrl.SetControllerReference(t, net, r.Scheme)
-
-	return net
-
-}
-
-func (r *CDTargetReconciler) updateNetworkPolicyForCDTarget(t *cnadv1alpha1.CDTarget, net *netv1.NetworkPolicy, portList []int32) *netv1.NetworkPolicy {
+func (r *CDTargetReconciler) networkPolicyForCDTarget(t *cnadv1alpha1.CDTarget, net *netv1.NetworkPolicy, portList []int32) *netv1.NetworkPolicy {
 	ls := t.Spec.PodSelector
 	peers := peersForCDTarget(t.Spec.IP)
 	ports := portsForCDTarget(portList)

@@ -136,11 +136,12 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	if create {
-		netpol = r.networkPolicyForCDTarget(operatorCR, ports)
+		netpol = r.networkPolicyForCDTarget(operatorCR, netpol, ports)
+		err = ctrl.SetControllerReference(operatorCR, netpol, r.Scheme)
 		err = r.Create(ctx, netpol)
 	} else {
 
-		netpol = r.updateNetworkPolicyForCDTarget(operatorCR, netpol, ports)
+		netpol = r.networkPolicyForCDTarget(operatorCR, netpol, ports)
 		err = r.Update(ctx, netpol)
 	}
 
@@ -174,10 +175,11 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	if create {
-		cmcfg = r.configMapForCDTarget(operatorCR)
+		cmcfg = r.configMapForCDTarget(operatorCR, cmcfg)
+		err = ctrl.SetControllerReference(operatorCR, cmcfg, r.Scheme)
 		err = r.Create(ctx, cmcfg)
 	} else {
-		cmcfg = r.updateConfigMapForCDTarget(operatorCR, cmcfg)
+		cmcfg = r.configMapForCDTarget(operatorCR, cmcfg)
 		err = r.Update(ctx, cmcfg)
 	}
 
@@ -211,10 +213,11 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	if create {
-		deployment = r.deploymentForCDTarget(operatorCR)
+		deployment = r.deploymentForCDTarget(operatorCR, deployment)
+		err = ctrl.SetControllerReference(operatorCR, deployment, r.Scheme)
 		err = r.Create(ctx, deployment)
 	} else {
-		deployment = r.updateDeploymentForCDTarget(operatorCR, deployment)
+		deployment = r.deploymentForCDTarget(operatorCR, deployment)
 		err = r.Update(ctx, deployment)
 	}
 

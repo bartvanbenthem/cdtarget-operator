@@ -135,13 +135,13 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
 	}
 
+	netpol = r.networkPolicyForCDTarget(operatorCR, ports)
+	//err = ctrl.SetControllerReference(operatorCR, netpol, r.Scheme)
+
 	if create {
-		netpol = r.networkPolicyForCDTarget(operatorCR, netpol, ports)
 		err = ctrl.SetControllerReference(operatorCR, netpol, r.Scheme)
 		err = r.Create(ctx, netpol)
 	} else {
-
-		netpol = r.networkPolicyForCDTarget(operatorCR, netpol, ports)
 		err = r.Update(ctx, netpol)
 	}
 
@@ -174,12 +174,13 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
 	}
 
+	cmcfg = r.configMapForCDTarget(operatorCR)
+	// err = ctrl.SetControllerReference(operatorCR, cmcfg, r.Scheme)
+
 	if create {
-		cmcfg = r.configMapForCDTarget(operatorCR, cmcfg)
 		err = ctrl.SetControllerReference(operatorCR, cmcfg, r.Scheme)
 		err = r.Create(ctx, cmcfg)
 	} else {
-		cmcfg = r.configMapForCDTarget(operatorCR, cmcfg)
 		err = r.Update(ctx, cmcfg)
 	}
 
@@ -212,12 +213,13 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
 	}
 
+	deployment = r.deploymentForCDTarget(operatorCR)
+	// err = ctrl.SetControllerReference(operatorCR, deployment, r.Scheme)
+
 	if create {
-		deployment = r.deploymentForCDTarget(operatorCR, deployment)
 		err = ctrl.SetControllerReference(operatorCR, deployment, r.Scheme)
 		err = r.Create(ctx, deployment)
 	} else {
-		deployment = r.deploymentForCDTarget(operatorCR, deployment)
 		err = r.Update(ctx, deployment)
 	}
 

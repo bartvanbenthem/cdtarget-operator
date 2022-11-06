@@ -28,12 +28,12 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-func (r *CDTargetReconciler) networkPolicyForCDTarget(t *cnadv1alpha1.CDTarget, net *netv1.NetworkPolicy, portList []int32) *netv1.NetworkPolicy {
+func (r *CDTargetReconciler) networkPolicyForCDTarget(t *cnadv1alpha1.CDTarget, portList []int32) *netv1.NetworkPolicy {
 	ls := t.Spec.PodSelector
 	peers := peersForCDTarget(t.Spec.IP)
 	ports := portsForCDTarget(portList)
 
-	net = &netv1.NetworkPolicy{
+	net := &netv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      t.Name,
 			Namespace: t.Namespace,
@@ -51,7 +51,6 @@ func (r *CDTargetReconciler) networkPolicyForCDTarget(t *cnadv1alpha1.CDTarget, 
 	}
 
 	return net
-
 }
 
 func peersForCDTarget(list []string) []netv1.NetworkPolicyPeer {

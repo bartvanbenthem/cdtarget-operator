@@ -74,7 +74,7 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	operatorCR := &cnadv1alpha1.CDTarget{}
 	err := r.Get(ctx, req.NamespacedName, operatorCR)
 	if err != nil && errors.IsNotFound(err) {
-		logger.Info("Operator CDTArget resource object not found.")
+		logger.Info("Operator CDTarget resource object not found.")
 		return ctrl.Result{}, nil
 	} else if err != nil {
 		logger.Error(err, "Error getting operator CDTarget resource object")
@@ -136,10 +136,12 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	netpol = r.networkPolicyForCDTarget(operatorCR, ports)
-	//err = ctrl.SetControllerReference(operatorCR, netpol, r.Scheme)
+	if err = ctrl.SetControllerReference(operatorCR, netpol, r.Scheme); err != nil {
+		logger.Error(err, "Failed to set NetworkPolicy controller reference")
+		return ctrl.Result{}, err
+	}
 
 	if create {
-		err = ctrl.SetControllerReference(operatorCR, netpol, r.Scheme)
 		err = r.Create(ctx, netpol)
 	} else {
 		err = r.Update(ctx, netpol)
@@ -175,10 +177,12 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	cmcfg = r.configMapForCDTarget(operatorCR)
-	// err = ctrl.SetControllerReference(operatorCR, cmcfg, r.Scheme)
+	if err = ctrl.SetControllerReference(operatorCR, cmcfg, r.Scheme); err != nil {
+		logger.Error(err, "Failed to set ConfigMap controller reference")
+		return ctrl.Result{}, err
+	}
 
 	if create {
-		err = ctrl.SetControllerReference(operatorCR, cmcfg, r.Scheme)
 		err = r.Create(ctx, cmcfg)
 	} else {
 		err = r.Update(ctx, cmcfg)
@@ -214,10 +218,12 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	deployment = r.deploymentForCDTarget(operatorCR)
-	// err = ctrl.SetControllerReference(operatorCR, deployment, r.Scheme)
+	if err = ctrl.SetControllerReference(operatorCR, deployment, r.Scheme); err != nil {
+		logger.Error(err, "Failed to set Deployment controller reference")
+		return ctrl.Result{}, err
+	}
 
 	if create {
-		err = ctrl.SetControllerReference(operatorCR, deployment, r.Scheme)
 		err = r.Create(ctx, deployment)
 	} else {
 		err = r.Update(ctx, deployment)

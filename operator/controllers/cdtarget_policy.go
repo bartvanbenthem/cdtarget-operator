@@ -34,7 +34,7 @@ func (r *CDTargetReconciler) networkPolicyForCDTarget(t *cnadv1alpha1.CDTarget, 
 	peers := peersForCDTarget(t.Spec.IP)
 	ports := portsForCDTarget(portList)
 
-	net := netv1.NetworkPolicy{
+	net := &netv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      t.Name,
 			Namespace: t.Namespace,
@@ -52,9 +52,9 @@ func (r *CDTargetReconciler) networkPolicyForCDTarget(t *cnadv1alpha1.CDTarget, 
 	}
 
 	// Set CDTarget instance as the owner and controller
-	ctrl.SetControllerReference(t, &net, r.Scheme)
+	ctrl.SetControllerReference(t, net, r.Scheme)
 
-	return &net
+	return net
 
 }
 

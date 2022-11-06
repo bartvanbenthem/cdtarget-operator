@@ -20,7 +20,7 @@ func (r *CDTargetReconciler) configMapForCDTarget(t *cnadv1alpha1.CDTarget) *v1.
 	data["AZP_AGENT_NAME"] = string(t.Spec.Config.AgentName)
 	data["AGENT_MTU_VALUE"] = string(t.Spec.Config.MTUValue)
 
-	cm := v1.ConfigMap{
+	cm := &v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: t.Namespace,
@@ -29,15 +29,15 @@ func (r *CDTargetReconciler) configMapForCDTarget(t *cnadv1alpha1.CDTarget) *v1.
 		Data: data,
 	}
 	// Set CDTarget instance as the owner and controller
-	ctrl.SetControllerReference(t, &cm, r.Scheme)
-	return &cm
+	ctrl.SetControllerReference(t, cm, r.Scheme)
+	return cm
 }
 
 func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *appsv1.Deployment {
 	ls := t.Spec.PodSelector
 	replicas := t.Spec.MinReplicaCount
 
-	dep := appsv1.Deployment{
+	dep := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      t.Name,
 			Namespace: t.Namespace,
@@ -194,6 +194,6 @@ func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *ap
 		},
 	}
 	// Set Agent instance as the owner and controller
-	ctrl.SetControllerReference(t, &dep, r.Scheme)
-	return &dep
+	ctrl.SetControllerReference(t, dep, r.Scheme)
+	return dep
 }

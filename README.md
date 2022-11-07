@@ -117,9 +117,10 @@ spec:
 What other resources are required:
 ```Go
 //+kubebuilder:rbac:groups=networking.k8s.io,resources=networkpolicies,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;
-//+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create
+//+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create
 //+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch
+//+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=operators.coreos.com,resources=operatorconditions,verbs=get;list;watch
 ```
 
@@ -180,7 +181,7 @@ make manifests
 # docker and github repo username
 export USERNAME='bartvanbenthem'
 # image and bundle version
-export VERSION=0.1.2
+export VERSION=0.1.6
 # operator repo and name
 export OPERATOR_NAME='cdtarget-operator'
 
@@ -227,19 +228,10 @@ EOF
 #######################################################
 # test cdtarget CR 
 kubectl create ns test
-# secret containing token
-source ../../00-ENV/env.sh # personal setup to inject PAT!!
+# prestage the PAT (token) Secret for succesfull AUTH
+source ../../00-ENV/env.sh # personal setup to inject PAT
 kubectl -n test create secret generic cdtarget-token \
                   --from-literal=AZP_TOKEN=$PAT
-# secret containing proxy settings
-kubectl -n test create secret generic cdtarget-proxy \
-                  --from-literal=PROXY_USER='' \
-                  --from-literal=PROXY_PW='' \
-                  --from-literal=PROXY_URL='' \
-                  --from-literal=HTTP_PROXY='' \
-                  --from-literal=HTTPS_PROXY='' \
-                  --from-literal=FTP_PROXY='' \
-                  --from-literal=NO_PROXY=''  
 # apply cdtarget resource
 # for scaling >1 replica don`t set the agentName field in the CR
 kubectl -n test apply -f ../cnad_cdtarget_sample.yaml
@@ -249,7 +241,7 @@ kubectl -n test describe networkpolicies cdtarget-agent
 kubectl -n test describe deployment cdtarget-agent
 ```
 
-### Remove CR, Operator bundle and OLM
+### Remove CR, CRD & Operator bundle
 ```bash
 # cleanup test deployment
 kubectl -n test delete -f ../cnad_cdtarget_sample.yaml
@@ -257,60 +249,45 @@ kubectl delete ns test
 # cleanup OLM bundle & OLM installation
 operator-sdk cleanup operator --delete-all --namespace='cdtarget-operator'
 kubectl delete ns 'cdtarget-operator'
+```
+
+### Enable Proxy config
+```bash
+# update secret containing proxy settings
+kubectl -n test create secret generic cdtarget-proxy --dry-run=client -o yaml \
+                  --from-literal=PROXY_USER='username' \
+                  --from-literal=PROXY_PW=$password \
+                  --from-literal=PROXY_URL='http://proxy.gofound.nl:8080' \
+                  --from-literal=HTTP_PROXY='http://proxy.gofound.nl:8080' \
+                  --from-literal=HTTPS_PROXY='https://proxy.gofound.nl:8080' \
+                  --from-literal=FTP_PROXY='' \
+                  --from-literal=NO_PROXY='' | kubectl apply -f -
+kubectl -n test scale deployment cdtarget-agent --replicas=0  
+```
+
+### Update Personal Access Token
+```bash
+# update CDTarget PAT
+kubectl -n test create secret generic cdtarget-token --dry-run=client -o yaml \
+                  --from-literal=AZP_TOKEN=$PAT | kubectl apply -f -
+kubectl -n test scale deployment cdtarget-agent --replicas=0  
+```
+
+### Uninstall Operator Lifecycle Manager
+```bash
 # uninstall OLM
 operator-sdk olm uninstall
 ```
 
-
-## Manual Deployment (instead of OLM deployment)
+### Manual Operator Deployment (instead of OLM deployment)
 ```bash
 #######################################################
 # test and deploy the operator
 make deploy IMG=docker.io/$USERNAME/$OPERATOR_NAME:v$VERSION
-# configmap to specify the ports
-cat <<EOF | kubectl apply -f -
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: cdtarget-ports
-  namespace: cdtarget-operator
-data:
-  ports: | 
-    443
-    22
-    5986
-    5432
-EOF
-
-#######################################################
-# test cdtarget CR 
-kubectl create ns test
-# secret containing token
-source ../../00-ENV/env.sh # personal setup to inject PAT!!
-kubectl -n test create secret generic cdtarget-token \
-                  --from-literal=AZP_TOKEN=$PAT
-# secret containing proxy settings
-kubectl -n test create secret generic cdtarget-proxy \
-                  --from-literal=PROXY_USER='' \
-                  --from-literal=PROXY_PW='' \
-                  --from-literal=PROXY_URL='' \
-                  --from-literal=HTTP_PROXY='' \
-                  --from-literal=HTTPS_PROXY='' \
-                  --from-literal=FTP_PROXY='' \
-                  --from-literal=NO_PROXY=''  
-# apply cdtarget resource
-# for scaling >1 replica don`t set the agentName field in the CR
-kubectl -n test apply -f ../cnad_cdtarget_sample.yaml
-kubectl -n test describe cdtarget cdtarget-agent
-# test
-kubectl -n test describe networkpolicies cdtarget-agent
-kubectl -n test describe deployment cdtarget-agent
 ```
 
 ### Manual Remove Operator, CRD and CR
 ```bash
 # cleanup test deployment
-kubectl -n test delete -f ../cnad_cdtarget_sample.yaml
-kubectl delete ns test
 make undeploy
 ```

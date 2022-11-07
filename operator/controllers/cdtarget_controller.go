@@ -52,9 +52,10 @@ type CDTargetReconciler struct {
 //+kubebuilder:rbac:groups=cnad.gofound.nl,resources=cdtargets/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=cnad.gofound.nl,resources=cdtargets/finalizers,verbs=update
 //+kubebuilder:rbac:groups=networking.k8s.io,resources=networkpolicies,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;
-//+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create
+//+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create
 //+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch
+//+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=operators.coreos.com,resources=operatorconditions,verbs=get;list;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -84,6 +85,60 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			Reason:             cnadv1alpha1.ReasonCRNotAvailable,
 			LastTransitionTime: metav1.NewTime(time.Now()),
 			Message:            fmt.Sprintf("unable to get operator custom resource: %s", err.Error()),
+		})
+		return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
+	}
+
+	// Fetch CDTarget proxy secret object if it exists
+	// Only if it does not exist create the proxy secret
+	// so proxy values can be added later to enable proxy functionality
+	// the controller is not an owner after initial creation
+	proxy := &corev1.Secret{}
+	err = r.Get(ctx, types.NamespacedName{Name: operatorCR.Spec.ProxyRef,
+		Namespace: operatorCR.Namespace}, proxy)
+	if err != nil && errors.IsNotFound(err) {
+		logger.Info("No existing Proxy Secret found cdtarget-ports")
+		logger.Info("Creating Proxy Secret, add values later to enable proxy functionality")
+		proxy = r.proxySecretForCDTarget(operatorCR)
+		err = r.Create(ctx, proxy)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+	} else if err != nil {
+		logger.Error(err, "Error getting operator CDTarget Proxy Secret object")
+		meta.SetStatusCondition(&operatorCR.Status.Conditions, metav1.Condition{
+			Type:               "ReconcileSuccess",
+			Status:             metav1.ConditionFalse,
+			Reason:             cnadv1alpha1.ReasonSecretNotAvailable,
+			LastTransitionTime: metav1.NewTime(time.Now()),
+			Message:            fmt.Sprintf("unable to configure Proxy Secret: %s", err.Error()),
+		})
+		return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
+	}
+
+	// Fetch CDTarget token secret object if it exists
+	// Only if it does not exist create the token secret
+	// so token values can be added later to enable token functionality
+	// the controller is not an owner after initial creation
+	token := &corev1.Secret{}
+	err = r.Get(ctx, types.NamespacedName{Name: operatorCR.Spec.TokenRef,
+		Namespace: operatorCR.Namespace}, token)
+	if err != nil && errors.IsNotFound(err) {
+		logger.Info("No existing Token Secret found cdtarget-ports")
+		logger.Info("Creating Token Secret, add values later to enable azure pipeline Auth")
+		token = r.tokenSecretForCDTarget(operatorCR)
+		err = r.Create(ctx, token)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+	} else if err != nil {
+		logger.Error(err, "Error getting operator CDTarget Token Secret object")
+		meta.SetStatusCondition(&operatorCR.Status.Conditions, metav1.Condition{
+			Type:               "ReconcileSuccess",
+			Status:             metav1.ConditionFalse,
+			Reason:             cnadv1alpha1.ReasonSecretNotAvailable,
+			LastTransitionTime: metav1.NewTime(time.Now()),
+			Message:            fmt.Sprintf("unable to configure Token Secret: %s", err.Error()),
 		})
 		return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
 	}

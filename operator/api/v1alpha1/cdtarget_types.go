@@ -30,6 +30,8 @@ const (
 	ReasonOperandConfigMapFailed     = "OperandConfigMapFailed"
 	ReasonDeploymentNotAvailable     = "DeploymentNotAvailable"
 	ReasonOperandDeploymentFailed    = "OperandDeploymentFailed"
+	ReasonSecretNotAvailable         = "SecretNotAvailable"
+	ReasonOperandSecretFailed        = "OperandSecretFailed"
 	ReasonSucceeded                  = "OperatorSucceeded"
 )
 

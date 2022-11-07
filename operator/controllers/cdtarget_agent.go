@@ -31,6 +31,50 @@ func (r *CDTargetReconciler) configMapForCDTarget(t *cnadv1alpha1.CDTarget) *v1.
 	return cm
 }
 
+func (r *CDTargetReconciler) proxySecretForCDTarget(t *cnadv1alpha1.CDTarget) *corev1.Secret {
+	ls := t.Spec.PodSelector
+	name := t.Spec.ProxyRef
+
+	secdata := map[string]string{}
+	secdata["HTTP_PROXY"] = string("")
+	secdata["HTTPS_PROXY"] = string("")
+	secdata["FTP_PROXY"] = string("")
+	secdata["PROXY_URL"] = string("")
+	secdata["PROXY_USER"] = string("")
+	secdata["PROXY_PW"] = string("")
+	secdata["NO_PROXY"] = string("")
+
+	sec := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Labels:    ls,
+			Name:      name,
+			Namespace: t.Namespace,
+		},
+		StringData: secdata,
+	}
+
+	return &sec
+}
+
+func (r *CDTargetReconciler) tokenSecretForCDTarget(t *cnadv1alpha1.CDTarget) *corev1.Secret {
+	ls := t.Spec.PodSelector
+	name := t.Spec.TokenRef
+
+	secdata := map[string]string{}
+	secdata["AZP_TOKEN"] = string("")
+
+	sec := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Labels:    ls,
+			Name:      name,
+			Namespace: t.Namespace,
+		},
+		StringData: secdata,
+	}
+
+	return &sec
+}
+
 func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *appsv1.Deployment {
 	ls := t.Spec.PodSelector
 	replicas := t.Spec.MinReplicaCount

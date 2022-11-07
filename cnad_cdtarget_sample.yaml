@@ -4,7 +4,7 @@ metadata:
   name: cdtarget-agent
   namespace: test
 spec:
-  agentImage: bartvanbenthem/agent:latest
+  agentImage: bartvanbenthem/azagent:v2.211.42392
   minReplicaCount: 1
   maxReplicaCount: 3
   config:

@@ -228,7 +228,7 @@ EOF
 #######################################################
 # test cdtarget CR 
 kubectl create ns test
-# prestage the PAT (token) Secret for succesfull AUTH
+# prestage the PAT (token) Secret for succesfull Azure AUTH
 source ../../00-ENV/env.sh # personal setup to inject PAT
 kubectl -n test create secret generic cdtarget-token \
                   --from-literal=AZP_TOKEN=$PAT
@@ -245,6 +245,7 @@ kubectl -n test describe deployment cdtarget-agent
 ```bash
 # cleanup test deployment
 kubectl -n test delete -f ../cnad_cdtarget_sample.yaml
+kubectl -n test delete secret cdtarget-proxy cdtarget-token
 kubectl delete ns test
 # cleanup OLM bundle & OLM installation
 operator-sdk cleanup operator --delete-all --namespace='cdtarget-operator'
@@ -256,8 +257,8 @@ kubectl delete ns 'cdtarget-operator'
 # update secret containing proxy settings
 kubectl -n test create secret generic cdtarget-proxy --dry-run=client -o yaml \
                   --from-literal=PROXY_USER='username' \
-                  --from-literal=PROXY_PW=$password \
-                  --from-literal=PROXY_URL='http://proxy.gofound.nl:8080' \
+                  --from-literal=PROXY_PW='password' \
+                  --from-literal=PROXY_URL='http://user:password@proxy.gofound.nl:8080' \
                   --from-literal=HTTP_PROXY='http://proxy.gofound.nl:8080' \
                   --from-literal=HTTPS_PROXY='https://proxy.gofound.nl:8080' \
                   --from-literal=FTP_PROXY='' \

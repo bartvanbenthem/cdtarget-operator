@@ -26,7 +26,7 @@ export OPERATOR_NAME='cdtarget-operator'
 make docker-build docker-push IMG=docker.io/$USERNAME/$OPERATOR_NAME:v$VERSION
 ```
 
-#### Operator lifecycle manager Deployment
+## Operator lifecycle manager Deployment
 ```bash
 #######################################################
 # install OLM (if not already present)
@@ -64,20 +64,11 @@ EOF
 #######################################################
 # test cdtarget CR 
 kubectl create ns test
-# secret containing token
-source ../../00-ENV/env.sh # personal setup to inject PAT!!
+# prestage the PAT (token) Secret for succesfull Azure AUTH
 kubectl -n test create secret generic cdtarget-token \
                   --from-literal=AZP_TOKEN=$PAT
-# secret containing proxy settings
-kubectl -n test create secret generic cdtarget-proxy \
-                  --from-literal=PROXY_USER='' \
-                  --from-literal=PROXY_PW='' \
-                  --from-literal=PROXY_URL='' \
-                  --from-literal=HTTP_PROXY='' \
-                  --from-literal=HTTPS_PROXY='' \
-                  --from-literal=FTP_PROXY='' \
-                  --from-literal=NO_PROXY=''  
 # apply cdtarget resource
+# for scaling >1 replica don`t set the agentName field in the CR
 kubectl -n test apply -f ../cnad_cdtarget_sample.yaml
 kubectl -n test describe cdtarget cdtarget-agent
 # test
@@ -85,16 +76,75 @@ kubectl -n test describe networkpolicies cdtarget-agent
 kubectl -n test describe deployment cdtarget-agent
 ```
 
-### Uninstall
+### Remove CR, CRD & Operator bundle
 ```bash
 # cleanup test deployment
 kubectl -n test delete -f ../cnad_cdtarget_sample.yaml
+kubectl -n test delete secret cdtarget-proxy cdtarget-token
 kubectl delete ns test
 # cleanup OLM bundle & OLM installation
 operator-sdk cleanup operator --delete-all --namespace='cdtarget-operator'
 kubectl delete ns 'cdtarget-operator'
+```
+
+### Enable Proxy config
+```bash
+# update secret containing proxy settings
+kubectl -n test create secret generic cdtarget-proxy --dry-run=client -o yaml \
+                  --from-literal=PROXY_USER='username' \
+                  --from-literal=PROXY_PW='password' \
+                  --from-literal=PROXY_URL='http://user:password@proxy.gofound.nl:8080' \
+                  --from-literal=HTTP_PROXY='http://proxy.gofound.nl:8080' \
+                  --from-literal=HTTPS_PROXY='https://proxy.gofound.nl:8080' \
+                  --from-literal=FTP_PROXY='' \
+                  --from-literal=NO_PROXY='' | kubectl apply -f -
+kubectl -n test scale deployment cdtarget-agent --replicas=0  
+```
+
+### Update Personal Access Token
+```bash
+# update CDTarget PAT
+kubectl -n test create secret generic cdtarget-token --dry-run=client -o yaml \
+                  --from-literal=AZP_TOKEN=$PAT | kubectl apply -f -
+kubectl -n test scale deployment cdtarget-agent --replicas=0  
+```
+
+### Update allowed ports
+```bash
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cdtarget-ports
+  namespace: cdtarget-operator
+data:
+  ports: | 
+    443
+    22
+    5986
+    5432
+    1433
+EOF
+```
+
+
+### Uninstall Operator Lifecycle Manager
+```bash
 # uninstall OLM
-opera
+operator-sdk olm uninstall
+```
+
+### Manual Operator Deployment (instead of OLM deployment)
+```bash
+#######################################################
+# test and deploy the operator
+make deploy IMG=docker.io/$USERNAME/$OPERATOR_NAME:v$VERSION
+```
+
+### Manual Remove Operator, CRD and CR
+```bash
+# cleanup test deployment
+make undeploy
 ```
 
 ## Contributing

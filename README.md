@@ -103,6 +103,9 @@ spec:
   config:
     url: https://dev.azure.com/ORGANIZATION
     poolName: poc-pool
+    workDir: 
+    mtuValue:
+    agentName:
   tokenRef: cdtarget-token
   proxyRef: cdtarget-proxy
   podSelector:

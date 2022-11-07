@@ -274,6 +274,25 @@ kubectl -n test create secret generic cdtarget-token --dry-run=client -o yaml \
 kubectl -n test scale deployment cdtarget-agent --replicas=0  
 ```
 
+### Update allowed ports
+```bash
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cdtarget-ports
+  namespace: cdtarget-operator
+data:
+  ports: | 
+    443
+    22
+    5986
+    5432
+    1433
+EOF
+```
+
+
 ### Uninstall Operator Lifecycle Manager
 ```bash
 # uninstall OLM

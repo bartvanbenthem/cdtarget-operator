@@ -10,7 +10,6 @@ spec:
   config:
     url: https://dev.azure.com/DevOps-SST
     poolName: poc-pool
-    agentName: cdtarget-agent
   tokenRef: cdtarget-token
   proxyRef: cdtarget-proxy
   podSelector:

@@ -103,7 +103,6 @@ spec:
   config:
     url: https://dev.azure.com/ORGANIZATION
     poolName: poc-pool
-    agentName: agent-sample
   tokenRef: cdtarget-token
   proxyRef: cdtarget-proxy
   podSelector:
@@ -181,7 +180,7 @@ make manifests
 # docker and github repo username
 export USERNAME='bartvanbenthem'
 # image and bundle version
-export VERSION=0.3.9
+export VERSION=0.1.2
 # operator repo and name
 export OPERATOR_NAME='cdtarget-operator'
 
@@ -242,6 +241,7 @@ kubectl -n test create secret generic cdtarget-proxy \
                   --from-literal=FTP_PROXY='' \
                   --from-literal=NO_PROXY=''  
 # apply cdtarget resource
+# for scaling >1 replica don`t set the agentName field in the CR
 kubectl -n test apply -f ../cnad_cdtarget_sample.yaml
 kubectl -n test describe cdtarget cdtarget-agent
 # test
@@ -289,7 +289,17 @@ kubectl create ns test
 source ../../00-ENV/env.sh # personal setup to inject PAT!!
 kubectl -n test create secret generic cdtarget-token \
                   --from-literal=AZP_TOKEN=$PAT
+# secret containing proxy settings
+kubectl -n test create secret generic cdtarget-proxy \
+                  --from-literal=PROXY_USER='' \
+                  --from-literal=PROXY_PW='' \
+                  --from-literal=PROXY_URL='' \
+                  --from-literal=HTTP_PROXY='' \
+                  --from-literal=HTTPS_PROXY='' \
+                  --from-literal=FTP_PROXY='' \
+                  --from-literal=NO_PROXY=''  
 # apply cdtarget resource
+# for scaling >1 replica don`t set the agentName field in the CR
 kubectl -n test apply -f ../cnad_cdtarget_sample.yaml
 kubectl -n test describe cdtarget cdtarget-agent
 # test

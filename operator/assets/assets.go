@@ -3,7 +3,8 @@ package assets
 import (
 	"embed"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
+	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 )
@@ -17,21 +18,39 @@ var (
 )
 
 func init() {
-	if err := v1.AddToScheme(appsScheme); err != nil {
+	if err := corev1.AddToScheme(appsScheme); err != nil {
+		panic(err)
+	}
+
+	if err := netv1.AddToScheme(appsScheme); err != nil {
 		panic(err)
 	}
 }
 
-func GetConfigMapFromFile(name string) *v1.ConfigMap {
+func GetConfigMapFromFile(name string) *corev1.ConfigMap {
 	configMapBytes, err := manifests.ReadFile(name)
 	if err != nil {
 		panic(err)
 	}
 
-	configMapObject, err := runtime.Decode(appsCodecs.UniversalDecoder(v1.SchemeGroupVersion), configMapBytes)
+	configMapObject, err := runtime.Decode(appsCodecs.UniversalDecoder(corev1.SchemeGroupVersion), configMapBytes)
 	if err != nil {
 		panic(err)
 	}
 
-	return configMapObject.(*v1.ConfigMap)
+	return configMapObject.(*corev1.ConfigMap)
+}
+
+func GetNetworkPolicyFromFile(name string) *netv1.NetworkPolicy {
+	networkPolicyBytes, err := manifests.ReadFile(name)
+	if err != nil {
+		panic(err)
+	}
+
+	networkPolicyObject, err := runtime.Decode(appsCodecs.UniversalDecoder(netv1.SchemeGroupVersion), networkPolicyBytes)
+	if err != nil {
+		panic(err)
+	}
+
+	return networkPolicyObject.(*netv1.NetworkPolicy)
 }

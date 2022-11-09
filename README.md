@@ -184,7 +184,7 @@ make manifests
 # docker and github repo username
 export USERNAME='bartvanbenthem'
 # image and bundle version
-export VERSION=0.1.6
+export VERSION=0.1.9
 # operator repo and name
 export OPERATOR_NAME='cdtarget-operator'
 
@@ -212,22 +212,8 @@ kubectl create ns 'cdtarget-operator'
 operator-sdk run bundle docker.io/$USERNAME/$OPERATOR_NAME-bundle:v$VERSION --namespace='cdtarget-operator'
 ```
 
+### Test custom resource
 ```bash
-# configmap to specify the ports
-cat <<EOF | kubectl apply -f -
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: cdtarget-ports
-  namespace: cdtarget-operator
-data:
-  ports: | 
-    443
-    22
-    5986
-    5432
-EOF
-
 #######################################################
 # test cdtarget CR 
 kubectl create ns test
@@ -239,7 +225,10 @@ kubectl -n test create secret generic cdtarget-token \
 # for scaling >1 replica don`t set the agentName field in the CR
 kubectl -n test apply -f ../cnad_cdtarget_sample.yaml
 kubectl -n test describe cdtarget cdtarget-agent
-# test
+# test CDTarget created objects
+kubectl -n test describe secret cdtarget-proxy
+kubectl -n test describe configmap cdtarget-config
+kubectl -n test describe networkpolicies azure-pipelines-pool
 kubectl -n test describe networkpolicies cdtarget-agent
 kubectl -n test describe deployment cdtarget-agent
 ```
@@ -269,14 +258,6 @@ kubectl -n test create secret generic cdtarget-proxy --dry-run=client -o yaml \
 kubectl -n test scale deployment cdtarget-agent --replicas=0  
 ```
 
-### Update Personal Access Token
-```bash
-# update CDTarget PAT
-kubectl -n test create secret generic cdtarget-token --dry-run=client -o yaml \
-                  --from-literal=AZP_TOKEN=$PAT | kubectl apply -f -
-kubectl -n test scale deployment cdtarget-agent --replicas=0  
-```
-
 ### Update allowed ports
 ```bash
 cat <<EOF | kubectl apply -f -
@@ -295,6 +276,13 @@ data:
 EOF
 ```
 
+### Update Personal Access Token
+```bash
+# update CDTarget PAT
+kubectl -n test create secret generic cdtarget-token --dry-run=client -o yaml \
+                  --from-literal=AZP_TOKEN=$PAT | kubectl apply -f -
+kubectl -n test scale deployment cdtarget-agent --replicas=0  
+```
 
 ### Uninstall Operator Lifecycle Manager
 ```bash

@@ -124,7 +124,7 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	err = r.Get(ctx, types.NamespacedName{Name: operatorCR.Spec.TokenRef,
 		Namespace: operatorCR.Namespace}, token)
 	if err != nil && errors.IsNotFound(err) {
-		logger.Info("No existing Token Secret found cdtarget-ports")
+		logger.Info("Existing Token Secret cdtarget-ports Not Found")
 		logger.Info("Creating Token Secret, add values later to enable azure pipeline Auth")
 		token = r.tokenSecretForCDTarget(operatorCR)
 		err = r.Create(ctx, token)
@@ -148,7 +148,7 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	err = r.Get(ctx, types.NamespacedName{Name: "cdtarget-ports",
 		Namespace: "cdtarget-operator"}, cmport)
 	if err != nil && errors.IsNotFound(err) {
-		logger.Info("Failed getting existing ConfigMap cdtarget-ports")
+		logger.Info("Existing ConfigMap cdtarget-ports Not Found")
 		logger.Info("Creating ConfigMap cdtarget-ports from assets manifests")
 		cmport = assets.GetConfigMapFromFile("manifests/cdtarget_ports.yaml")
 		err = r.Create(ctx, cmport)
@@ -156,7 +156,7 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			return ctrl.Result{}, err
 		}
 	} else if err != nil {
-		logger.Error(err, "Error getting operator CDTarget resource object")
+		logger.Error(err, "Error getting operator CDTarget ConfigMap object")
 		meta.SetStatusCondition(&operatorCR.Status.Conditions, metav1.Condition{
 			Type:               "ReconcileSuccess",
 			Status:             metav1.ConditionFalse,
@@ -172,7 +172,7 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		logger.Error(err, "Failed to parse ports")
 	}
 
-	// Fetch NetworkPolicy object if it exists
+	// Fetch NetworkPolicy CDTarget Egress object if it exists
 	netpol := &netv1.NetworkPolicy{}
 	create := false
 	err = r.Get(ctx, types.NamespacedName{Name: operatorCR.Name, Namespace: operatorCR.Namespace}, netpol)
@@ -209,6 +209,54 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			Reason:             cnadv1alpha1.ReasonOperandNetworkPolicyFailed,
 			LastTransitionTime: metav1.NewTime(time.Now()),
 			Message:            fmt.Sprintf("unable to update operand NetworkPolicy: %s", err.Error()),
+		})
+		return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
+	}
+
+	// Fetch NetworkPolicy object azure-pipelines-pool if it exists
+	azp := &netv1.NetworkPolicy{}
+	create = false
+	err = r.Get(ctx, types.NamespacedName{Name: "azure-pipelines-pool",
+		Namespace: operatorCR.Namespace}, azp)
+	if err != nil && errors.IsNotFound(err) {
+		logger.Info("Existing NetworkPolicy azure-pipelines-pool Not Found")
+		logger.Info("Creating NetworkPolicy azure-pipelines-pool from assets manifests")
+		create = true
+	} else if err != nil {
+		logger.Error(err, "Error getting existing CDTArget NetworkPolicy azure-pipelines-pool.")
+		meta.SetStatusCondition(&operatorCR.Status.Conditions, metav1.Condition{
+			Type:               "ReconcileSuccess",
+			Status:             metav1.ConditionFalse,
+			Reason:             cnadv1alpha1.ReasonNetworkPolicyNotAvailable,
+			LastTransitionTime: metav1.NewTime(time.Now()),
+			Message:            fmt.Sprintf("unable to get operand NetworkPolicy azure-pipelines-pool: %s", err.Error()),
+		})
+		return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
+	}
+
+	azp = assets.GetNetworkPolicyFromFile("manifests/az-pipelines-pool.yaml")
+	azp.ObjectMeta.Name = "azure-pipelines-pool"
+	azp.ObjectMeta.Namespace = operatorCR.Namespace
+	azp.ObjectMeta.Labels = operatorCR.Spec.PodSelector
+	azp.Spec.PodSelector.MatchLabels = operatorCR.Spec.PodSelector
+	if err = ctrl.SetControllerReference(operatorCR, azp, r.Scheme); err != nil {
+		logger.Error(err, "Failed to set NetworkPolicy controller reference")
+		return ctrl.Result{}, err
+	}
+
+	if create {
+		err = r.Create(ctx, azp)
+	} else {
+		err = r.Update(ctx, azp)
+	}
+
+	if err != nil {
+		meta.SetStatusCondition(&operatorCR.Status.Conditions, metav1.Condition{
+			Type:               "ReconcileSuccess",
+			Status:             metav1.ConditionFalse,
+			Reason:             cnadv1alpha1.ReasonOperandNetworkPolicyFailed,
+			LastTransitionTime: metav1.NewTime(time.Now()),
+			Message:            fmt.Sprintf("unable to update operand NetworkPolicy azure-pipelines-pool: %s", err.Error()),
 		})
 		return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
 	}

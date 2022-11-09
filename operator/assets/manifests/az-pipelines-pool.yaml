@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: azure-pipelines-pool
+spec:
+  egress:
+  - to:
+  - ports:
+    - port: 443
+      protocol: TCP
+    - port: 443
+      protocol: UDP     
+    to:
+    - ipBlock:
+        cidr: 13.107.6.0/24
+    - ipBlock:
+        cidr: 13.107.9.0/24
+    - ipBlock:
+        cidr: 13.107.42.0/24
+    - ipBlock:
+        cidr: 13.107.43.0/24
+  policyTypes:
+  - Egress

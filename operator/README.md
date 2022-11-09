@@ -71,9 +71,6 @@ kubectl -n test create secret generic cdtarget-token \
 # for scaling >1 replica don`t set the agentName field in the CR
 kubectl -n test apply -f ../cnad_cdtarget_sample.yaml
 kubectl -n test describe cdtarget cdtarget-agent
-# test
-kubectl -n test describe networkpolicies cdtarget-agent
-kubectl -n test describe deployment cdtarget-agent
 ```
 
 ### Remove CR, CRD & Operator bundle

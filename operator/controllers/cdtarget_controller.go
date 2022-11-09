@@ -143,7 +143,7 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
 	}
 
-	// Fetch ports ConfigMap object if it exists
+	// Fetch ConfigMap cdtarget-ports object from operator namespace if it exists
 	cmport := &v1.ConfigMap{}
 	err = r.Get(ctx, types.NamespacedName{Name: "cdtarget-ports",
 		Namespace: "cdtarget-operator"}, cmport)
@@ -166,11 +166,6 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		})
 		return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
 	}
-	// fetch ports from configmap
-	ports, err := getPortsFromConfigMap(cmport)
-	if err != nil {
-		logger.Error(err, "Failed to parse ports")
-	}
 
 	// Fetch NetworkPolicy CDTarget Egress object if it exists
 	netpol := &netv1.NetworkPolicy{}
@@ -188,6 +183,12 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			Message:            fmt.Sprintf("unable to get operand NetworkPolicy: %s", err.Error()),
 		})
 		return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
+	}
+
+	// Fetch ports from ConfigMap
+	ports, err := getPortsFromConfigMap(cmport)
+	if err != nil {
+		logger.Error(err, "Failed to parse ports")
 	}
 
 	netpol = r.networkPolicyForCDTarget(operatorCR, ports)

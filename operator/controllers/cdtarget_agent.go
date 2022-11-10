@@ -75,6 +75,25 @@ func (r *CDTargetReconciler) tokenSecretForCDTarget(t *cnadv1alpha1.CDTarget) *c
 	return &sec
 }
 
+func (r *CDTargetReconciler) caCertSecretForCDTarget(t *cnadv1alpha1.CDTarget) *corev1.Secret {
+	ls := t.Spec.PodSelector
+	name := t.Spec.CACertRef
+
+	secdata := map[string][]byte{}
+	secdata["CERTIFICATE.crt"] = []byte("")
+
+	sec := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Labels:    ls,
+			Name:      name,
+			Namespace: t.Namespace,
+		},
+		Data: secdata,
+	}
+
+	return &sec
+}
+
 func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *appsv1.Deployment {
 	ls := t.Spec.PodSelector
 	replicas := t.Spec.MinReplicaCount
@@ -95,9 +114,22 @@ func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *ap
 					Labels: ls,
 				},
 				Spec: corev1.PodSpec{
+					Volumes: []corev1.Volume{{
+						Name: t.Spec.CACertRef,
+						VolumeSource: corev1.VolumeSource{
+							Secret: &corev1.SecretVolumeSource{
+								SecretName: t.Spec.CACertRef,
+							},
+						},
+					}},
 					Containers: []corev1.Container{{
 						Image: t.Spec.AgentImage,
 						Name:  "agent",
+						VolumeMounts: []corev1.VolumeMount{{
+							Name:      t.Spec.CACertRef,
+							MountPath: "/usr/local/share/ca-certificates",
+							ReadOnly:  true,
+						}},
 						Env: []corev1.EnvVar{
 							{
 								Name: "AZP_URL",

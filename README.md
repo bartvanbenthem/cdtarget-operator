@@ -1,5 +1,5 @@
 # Continues Deployment Target - Operator
-Automate the configuration & lifecycle of Azure self-hosted pipelines agents and enable self-service for adding egress targets, without the need of delegating full network policy permissions to the namespace administrator. Event driven autoscaling is automatically enabled trough standard KEDA and Azure pipelines integrations.
+Automate the configuration & lifecycle of Azure self-hosted pipelines agents and enable self-service for adding egress targets, without the need of delegating full network policy permissions to the namespace administrator. Event driven autoscaling is automatically enabled trough KEDA and Azure pipelines integrations.
 
 ## Operator Design
 
@@ -12,7 +12,7 @@ Automate the configuration & lifecycle of Azure self-hosted pipelines agents and
 * Failure reporting
 
 ###  Describing the problem
-For us as namespace administrators (cluster users) the CRUD functionality on network policy objects are unauthorized by security design and can only be changed by the cluster administrators. To enable end tot end automation, we need the abillity to add target IPs ourselves to a specified set of allowed egress ports trough a Custom Resource, the ports are specified by the the cluster administrators from one central config. An Operator should automatically create or update a network policy containing the specified IPs defined in the Custom resource. The operator should als configure and manage the lifecycle of the self-hosted pipeline agents and simplify the enablement of event driven autoscaling.  
+For us as namespace administrators (cluster users) the CRUD functionality on network policy objects are unauthorized by security design and can only be changed by the cluster administrators. To enable end tot end automation, we need the abillity to add target IPs ourselves to a specified set of allowed egress ports trough a Custom Resource, the ports are specified by the the cluster administrators from centralized configuration. An Operator should automatically create or update a network policy containing the specified IPs defined in the CustomResource. The operator should als configure and manage the lifecycle of the self-hosted pipeline agents, be able to inject proxy configurations and CA certificates trough Kubernetes secrets and simplify the enablement of event driven autoscaling.  
 
 ### Designing the API and a CRD
 
@@ -108,6 +108,7 @@ spec:
     agentName:
   tokenRef: cdtarget-token
   proxyRef: cdtarget-proxy
+  caCertRef: cdtarget-ca
   podSelector:
     app: cdtarget-agent 
   ip:
@@ -184,7 +185,7 @@ make manifests
 # docker and github repo username
 export USERNAME='bartvanbenthem'
 # image and bundle version
-export VERSION=0.1.10
+export VERSION=0.1.14
 # operator repo and name
 export OPERATOR_NAME='cdtarget-operator'
 
@@ -227,6 +228,7 @@ kubectl -n test apply -f ../cnad_cdtarget_sample.yaml
 kubectl -n test describe cdtarget cdtarget-agent
 # test CDTarget created objects
 kubectl -n test describe secret cdtarget-proxy
+kubectl -n test describe secret cdtarget-ca
 kubectl -n test describe configmap cdtarget-config
 kubectl -n test describe networkpolicies azure-pipelines-pool
 kubectl -n test describe networkpolicies cdtarget-agent
@@ -281,6 +283,17 @@ EOF
 # update CDTarget PAT
 kubectl -n test create secret generic cdtarget-token --dry-run=client -o yaml \
                   --from-literal=AZP_TOKEN=$PAT | kubectl apply -f -
+kubectl -n test scale deployment cdtarget-agent --replicas=0  
+```
+
+### Inject CA Certificates from file
+* Best practise is to have the ca certificate prestaged as a kubernetes secret 
+* from the custom resource a reference is made to the prestaged secret
+```bash
+# inject CA Certificates to CDTarget agents
+# in /usr/local/share/ca-certificates
+kubectl -n test create secret generic cdtarget-ca --dry-run=client -o yaml \
+                --from-file="../CERTIFICATE.crt" | kubectl apply -f -
 kubectl -n test scale deployment cdtarget-agent --replicas=0  
 ```
 

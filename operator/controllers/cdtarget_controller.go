@@ -97,7 +97,7 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	err = r.Get(ctx, types.NamespacedName{Name: operatorCR.Spec.ProxyRef,
 		Namespace: operatorCR.Namespace}, proxy)
 	if err != nil && errors.IsNotFound(err) {
-		logger.Info("No existing Proxy Secret found cdtarget-ports")
+		logger.Info("Existing Proxy Secret Not Found")
 		logger.Info("Creating Proxy Secret, add values later to enable proxy functionality")
 		proxy = r.proxySecretForCDTarget(operatorCR)
 		err = r.Create(ctx, proxy)
@@ -124,7 +124,7 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	err = r.Get(ctx, types.NamespacedName{Name: operatorCR.Spec.TokenRef,
 		Namespace: operatorCR.Namespace}, token)
 	if err != nil && errors.IsNotFound(err) {
-		logger.Info("Existing Token Secret cdtarget-ports Not Found")
+		logger.Info("Existing Token Secret Not Found")
 		logger.Info("Creating Token Secret, add values later to enable azure pipeline Auth")
 		token = r.tokenSecretForCDTarget(operatorCR)
 		err = r.Create(ctx, token)
@@ -139,6 +139,33 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			Reason:             cnadv1alpha1.ReasonSecretNotAvailable,
 			LastTransitionTime: metav1.NewTime(time.Now()),
 			Message:            fmt.Sprintf("unable to configure Token Secret: %s", err.Error()),
+		})
+		return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
+	}
+
+	// Fetch CDTarget CA certificate secret object if it exists
+	// Only if it does not exist create the CA certificate secret
+	// So certificates can be added later to inject in the agent
+	// the controller is not an owner after initial creation
+	ca := &corev1.Secret{}
+	err = r.Get(ctx, types.NamespacedName{Name: operatorCR.Spec.CACertRef,
+		Namespace: operatorCR.Namespace}, ca)
+	if err != nil && errors.IsNotFound(err) {
+		logger.Info("Existing CA Certificate Secret Not Found")
+		logger.Info("Creating CA Certificate Secret, add values later to enable azure pipeline Auth")
+		ca = r.caCertSecretForCDTarget(operatorCR)
+		err = r.Create(ctx, ca)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+	} else if err != nil {
+		logger.Error(err, "Error getting operator CDTarget CA Certificate Secret object")
+		meta.SetStatusCondition(&operatorCR.Status.Conditions, metav1.Condition{
+			Type:               "ReconcileSuccess",
+			Status:             metav1.ConditionFalse,
+			Reason:             cnadv1alpha1.ReasonSecretNotAvailable,
+			LastTransitionTime: metav1.NewTime(time.Now()),
+			Message:            fmt.Sprintf("unable to configure CA Certificate Secret: %s", err.Error()),
 		})
 		return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
 	}

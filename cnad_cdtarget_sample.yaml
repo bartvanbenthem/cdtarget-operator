@@ -5,13 +5,14 @@ metadata:
   namespace: test
 spec:
   agentImage: bartvanbenthem/azagent:v2.211.1
-  minReplicaCount: 1
-  maxReplicaCount: 3
+  minReplicaCount: 2
+  maxReplicaCount: 5
   config:
     url: https://dev.azure.com/DevOps-SST
     poolName: poc-pool
   tokenRef: cdtarget-token
   proxyRef: cdtarget-proxy
+  caCertRef: cdtarget-ca
   podSelector:
     app: cdtarget-agent 
   ip:

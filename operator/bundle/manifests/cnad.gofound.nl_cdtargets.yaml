@@ -37,6 +37,9 @@ spec:
               agentImage:
                 description: pipeline agent image
                 type: string
+              caCertRef:
+                description: reference to secret that contains the CA certificates
+                type: string
               config:
                 description: AzureDevPortal is configuring the Azure DevOps pool settings
                   of the Agent by using additional environment variables.
@@ -81,6 +84,7 @@ spec:
                 description: reference to secret that contains the PAT
                 type: string
             required:
+            - caCertRef
             - podSelector
             - proxyRef
             - tokenRef

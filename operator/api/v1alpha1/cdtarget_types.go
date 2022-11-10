@@ -51,6 +51,8 @@ type CDTargetSpec struct {
 	ProxyRef string `json:"proxyRef"`
 	// reference to secret that contains the PAT
 	TokenRef string `json:"tokenRef"`
+	// reference to secret that contains the CA certificates
+	CACertRef string `json:"caCertRef"`
 	// AzureDevPortal is configuring the Azure DevOps pool settings of the Agent
 	// by using additional environment variables.
 	Config AgentConfig `json:"config,omitempty"`

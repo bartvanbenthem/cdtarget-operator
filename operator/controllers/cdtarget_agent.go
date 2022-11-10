@@ -97,8 +97,7 @@ func (r *CDTargetReconciler) caCertSecretForCDTarget(t *cnadv1alpha1.CDTarget) *
 func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *appsv1.Deployment {
 	ls := t.Spec.PodSelector
 	replicas := t.Spec.MinReplicaCount
-	cmd := []string{"/bin/sh"}
-	arg := []string{"-c", "update-ca-certificates"}
+	cmd := []string{"/bin/sh", "-c", "update-ca-certificates"}
 
 	dep := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -132,8 +131,13 @@ func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *ap
 							MountPath: "/usr/local/share/ca-certificates",
 							ReadOnly:  true,
 						}},
-						Command: cmd,
-						Args:    arg,
+						Lifecycle: &corev1.Lifecycle{
+							PostStart: &corev1.LifecycleHandler{
+								Exec: &corev1.ExecAction{
+									Command: cmd,
+								},
+							},
+						},
 						Env: []corev1.EnvVar{
 							{
 								Name: "AZP_URL",

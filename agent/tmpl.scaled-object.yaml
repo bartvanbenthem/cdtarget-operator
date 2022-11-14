@@ -1,0 +1,28 @@
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: pipeline-trigger-auth
+  namespace: test
+spec:
+  secretTargetRef:
+    - parameter: personalAccessToken
+      name: cdtarget-token
+      key: AZP_TOKEN
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: azure-pipelines-scaledobject
+  namespace: test
+spec:
+  scaleTargetRef:
+    name: cdtarget-agent-keda
+  minReplicaCount: 1
+  maxReplicaCount: 5
+  triggers:
+  - type: azure-pipelines
+    metadata:
+      poolName: "poc-pool"
+      organizationURLFromEnv: "AZP_URL"
+    authenticationRef:
+     name: pipeline-trigger-auth

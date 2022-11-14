@@ -43,11 +43,11 @@ spec:
             configMapKeyRef:
               name: cdtarget-agent-config
               key:  AGENT_MTU_VALUE         
-          - name: CDTARGET_TOKEN
+          - name: AZP_TOKEN
             valueFrom:
               secretKeyRef:
                 name: cdtarget-token
-                key: CDTARGET_TOKEN
+                key: AZP_TOKEN
           - name: HTTP_PROXY
             valueFrom:
               secretKeyRef:

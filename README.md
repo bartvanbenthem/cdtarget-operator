@@ -224,7 +224,7 @@ kubectl -n test create secret generic cdtarget-token \
                   --from-literal=AZP_TOKEN=$PAT
 # apply cdtarget resource
 # for scaling >1 replica don`t set the agentName field in the CR
-kubectl -n test apply -f ../cnad_cdtarget_sample.yaml
+kubectl -n test apply -f ../samples/cnad_cdtarget_sample.yaml
 kubectl -n test describe cdtarget cdtarget-agent
 # test CDTarget created objects
 kubectl -n test describe secret cdtarget-proxy
@@ -238,7 +238,7 @@ kubectl -n test describe deployment cdtarget-agent
 ### Remove CR, CRD & Operator bundle
 ```bash
 # cleanup test deployment
-kubectl -n test delete -f ../cnad_cdtarget_sample.yaml
+kubectl -n test delete -f ../samples/cnad_cdtarget_sample.yaml
 kubectl -n test delete secret cdtarget-proxy cdtarget-token
 kubectl delete ns test
 # cleanup OLM bundle & OLM installation
@@ -293,7 +293,7 @@ kubectl -n test scale deployment cdtarget-agent --replicas=0
 # inject CA Certificates to CDTarget agents
 # in /usr/local/share/ca-certificates
 kubectl -n test create secret generic cdtarget-ca --dry-run=client -o yaml \
-                --from-file="../CERTIFICATE.crt" | kubectl apply -f -
+                --from-file="../samples/CERTIFICATE.crt" | kubectl apply -f -
 kubectl -n test scale deployment cdtarget-agent --replicas=0  
 ```
 

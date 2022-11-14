@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: agent
-        image: bartvanbenthem/agent:latest
+        image: bartvanbenthem/azagent-keda:v0.1.0
         env:
           - name: AZP_POOL
           valueFrom:

@@ -167,7 +167,27 @@ status:
     type: ReconcileSuccess
 ```
 
-## Scaffolding parameters
+# Pereqs
+
+## Install KEDA
+```bash
+# Deploying using the deployment YAML files
+kubectl apply -f https://github.com/kedacore/keda/releases/download/v2.8.0/keda-2.8.0.yaml
+# You can also find the same YAML declarations in our /config 
+# directory on our GitHub repo if you prefer to clone it.
+git clone https://github.com/kedacore/keda && cd keda
+VERSION=2.8.0 make deploy
+```
+## Operator lifecycle manager Installation
+```bash
+#######################################################
+# install OLM (if not already present)
+operator-sdk olm install
+operator-sdk olm status
+```
+
+
+# Scaffolding parameters
 ```bash
 operator-sdk init --domain gofound.nl --repo github.com/bartvanbenthem/cdtarget-operator
 operator-sdk create api --group cnad --version v1alpha1 --kind CDTarget --resource --controller
@@ -196,11 +216,6 @@ make docker-build docker-push IMG=docker.io/$USERNAME/$OPERATOR_NAME:v$VERSION
 
 ## Operator lifecycle manager Deployment
 ```bash
-#######################################################
-# install OLM (if not already present)
-operator-sdk olm install
-operator-sdk olm status
-
 #######################################################
 # Build the OLM bundle
 make bundle IMG=docker.io/$USERNAME/$OPERATOR_NAME:v$VERSION   

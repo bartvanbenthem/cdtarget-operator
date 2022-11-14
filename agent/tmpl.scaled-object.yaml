@@ -22,7 +22,7 @@ spec:
   triggers:
   - type: azure-pipelines
     metadata:
-      poolName: "poc-pool"
-      organizationURLFromEnv: "AZP_URL"
+      poolName: poc-pool
+      organizationURLFromEnv: AZP_URL
     authenticationRef:
      name: pipeline-trigger-auth

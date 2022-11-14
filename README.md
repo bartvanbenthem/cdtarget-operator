@@ -205,7 +205,7 @@ make manifests
 # docker and github repo username
 export USERNAME='bartvanbenthem'
 # image and bundle version
-export VERSION=0.1.15
+export VERSION=0.1.19
 # operator repo and name
 export OPERATOR_NAME='cdtarget-operator'
 
@@ -248,6 +248,11 @@ kubectl -n test describe configmap cdtarget-config
 kubectl -n test describe networkpolicies azure-pipelines-pool
 kubectl -n test describe networkpolicies cdtarget-agent
 kubectl -n test describe deployment cdtarget-agent
+# KEDA scaled object
+kubectl -n test apply -f ../agent/tmpl.scaled-object.yaml
+kubectl -n test describe scaledobjects.keda.sh azure-pipelines-scaledobject
+kubectl -n test describe horizontalpodautoscalers.autoscaling
+
 ```
 
 ### Remove CR, CRD & Operator bundle

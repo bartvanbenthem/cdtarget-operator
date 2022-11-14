@@ -331,6 +331,9 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	// Fetch agent Deployment object if it exists
+	// After creation the Deployment is never updated by the operator
+	// to avoid conflicts with the horizontal pod scaler & KEDA
+	// The operator does own the deployment object for re-creation
 	deployment := &appsv1.Deployment{}
 	create = false
 	err = r.Get(ctx, types.NamespacedName{Name: operatorCR.Name, Namespace: operatorCR.Namespace}, deployment)
@@ -355,9 +358,8 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	if create {
+		logger.Info(fmt.Sprintf("Creating Deployment %s", deployment.Name))
 		err = r.Create(ctx, deployment)
-	} else {
-		err = r.Update(ctx, deployment)
 	}
 
 	if err != nil {
@@ -366,7 +368,7 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			Status:             metav1.ConditionFalse,
 			Reason:             cnadv1alpha1.ReasonOperandDeploymentFailed,
 			LastTransitionTime: metav1.NewTime(time.Now()),
-			Message:            fmt.Sprintf("unable to update operand Deployment: %s", err.Error()),
+			Message:            fmt.Sprintf("unable to create operand Deployment: %s", err.Error()),
 		})
 		return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
 	}

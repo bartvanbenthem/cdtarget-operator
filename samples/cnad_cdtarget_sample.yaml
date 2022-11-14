@@ -1,11 +1,11 @@
 apiVersion: cnad.gofound.nl/v1alpha1
 kind: CDTarget
 metadata:
-  name: cdtarget-agent
+  name: cdtarget-agent-keda
   namespace: test
 spec:
-  agentImage: bartvanbenthem/azagent:v2.211.1
-  minReplicaCount: 2
+  agentImage: bartvanbenthem/azagent-keda:v0.1.0
+  minReplicaCount: 1
   maxReplicaCount: 5
   config:
     url: https://dev.azure.com/DevOps-SST
@@ -14,7 +14,7 @@ spec:
   proxyRef: cdtarget-proxy
   caCertRef: cdtarget-ca
   podSelector:
-    app: cdtarget-agent 
+    app: cdtarget-agent
   ip:
   - 10.0.0.1
   - 10.0.0.2

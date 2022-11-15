@@ -52,7 +52,7 @@ type CDTargetReconciler struct {
 //+kubebuilder:rbac:groups=cnad.gofound.nl,resources=cdtargets/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=cnad.gofound.nl,resources=cdtargets/finalizers,verbs=update
 //+kubebuilder:rbac:groups=networking.k8s.io,resources=networkpolicies,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create
+//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create
 //+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete

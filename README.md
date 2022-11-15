@@ -237,21 +237,25 @@ kubectl create ns test
 source ../../00-ENV/env.sh # personal setup to inject PAT
 kubectl -n test create secret generic cdtarget-token \
                   --from-literal=AZP_TOKEN=$PAT
+# prestage example ca certificate
+kubectl -n test create secret generic cdtarget-ca \
+                   --from-file="../samples/CERTIFICATE.crt"    
 # apply cdtarget resource
 # for scaling >1 replica don`t set the agentName field in the CR
 kubectl -n test apply -f ../samples/cnad_cdtarget_sample.yaml
 kubectl -n test describe cdtarget cdtarget-agent
+# KEDA scaled object
+kubectl -n test apply -f ../agent/tmpl.scaled-object.yaml
 # test CDTarget created objects
-kubectl -n test describe secret cdtarget-proxy
+kubectl -n test describe secret cdtarget-token
 kubectl -n test describe secret cdtarget-ca
+kubectl -n test describe secret cdtarget-proxy
 kubectl -n test describe configmap cdtarget-config
 kubectl -n test describe networkpolicies azure-pipelines-pool
 kubectl -n test describe networkpolicies cdtarget-agent
-kubectl -n test describe deployment cdtarget-agent
-# KEDA scaled object
-kubectl -n test apply -f ../agent/tmpl.scaled-object.yaml
 kubectl -n test describe scaledobjects.keda.sh azure-pipelines-scaledobject
 kubectl -n test describe horizontalpodautoscalers.autoscaling
+kubectl -n test describe deployment cdtarget-agent
 
 ```
 
@@ -311,7 +315,8 @@ kubectl -n test scale deployment cdtarget-agent --replicas=0
 * from the custom resource a reference is made to the prestaged secret
 ```bash
 # inject CA Certificates to CDTarget agents
-# in /usr/local/share/ca-certificates
+# in /usr/local/share/ca-certificates/CERTIFICATE.crt
+# trust store: /etc/ssl/certs/ca-certificates.crt
 kubectl -n test create secret generic cdtarget-ca --dry-run=client -o yaml \
                 --from-file="../samples/CERTIFICATE.crt" | kubectl apply -f -
 kubectl -n test scale deployment cdtarget-agent --replicas=0  

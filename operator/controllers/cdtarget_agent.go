@@ -123,6 +123,7 @@ func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *ap
 							},
 						},
 					}},
+					ImagePullSecrets: t.Spec.ImagePullSecrets,
 					Containers: []corev1.Container{{
 						Image: t.Spec.AgentImage,
 						Name:  "agent",

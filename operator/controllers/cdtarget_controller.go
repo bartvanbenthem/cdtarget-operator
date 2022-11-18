@@ -27,7 +27,6 @@ import (
 	"github.com/operator-framework/operator-lib/conditions"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -171,7 +170,7 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	// Fetch ConfigMap cdtarget-ports object from operator namespace if it exists
-	cmport := &v1.ConfigMap{}
+	cmport := &corev1.ConfigMap{}
 	err = r.Get(ctx, types.NamespacedName{Name: "cdtarget-ports",
 		Namespace: "cdtarget-operator"}, cmport)
 	if err != nil && errors.IsNotFound(err) {
@@ -290,7 +289,7 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	// Fetch cdtarget-config ConfigMap object if it exists
-	cmcfg := &v1.ConfigMap{}
+	cmcfg := &corev1.ConfigMap{}
 	create = false
 	err = r.Get(ctx, types.NamespacedName{Name: "cdtarget-config", Namespace: operatorCR.Namespace}, cmcfg)
 	if err != nil && errors.IsNotFound(err) {

@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -43,6 +44,8 @@ type CDTargetSpec struct {
 	PodSelector map[string]string `json:"podSelector"`
 	// pipeline agent image
 	AgentImage string `json:"agentImage,omitempty"`
+	// image pull secrets
+	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
 	// +optional
 	MinReplicaCount *int32 `json:"minReplicaCount,omitempty"`
 	// +optional

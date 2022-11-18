@@ -61,6 +61,19 @@ spec:
                 - poolName
                 - url
                 type: object
+              imagePullSecrets:
+                description: image pull secrets
+                items:
+                  description: LocalObjectReference contains enough information to
+                    let you locate the referenced object inside the same namespace.
+                  properties:
+                    name:
+                      description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                        TODO: Add other useful fields. apiVersion, kind, uid?'
+                      type: string
+                  type: object
+                  x-kubernetes-map-type: atomic
+                type: array
               ip:
                 description: IP is a slice of string that contains all the CDTarget
                   IPs

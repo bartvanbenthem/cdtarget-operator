@@ -205,7 +205,7 @@ make manifests
 # docker and github repo username
 export USERNAME='bartvanbenthem'
 # image and bundle version
-export VERSION=0.1.21
+export VERSION=0.1.22
 # operator repo and name
 export OPERATOR_NAME='cdtarget-operator'
 
@@ -231,10 +231,16 @@ operator-sdk run bundle docker.io/$USERNAME/$OPERATOR_NAME-bundle:v$VERSION --na
 ### Test custom resource
 ```bash
 #######################################################
+source ../../00-ENV/env.sh # personal setup to inject PAT
 # test cdtarget CR 
 kubectl create ns test
+# create regcred secret
+kubectl -n test create secret docker-registry cdtarget-regcred \
+          --docker-server='https://index.docker.io/v1/' \
+          --docker-username='bartvanbenthem' \
+          --docker-password=$DOCKERHUB_PW \
+          --docker-email='mail@gofound.nl'
 # prestage the PAT (token) Secret for succesfull Azure AUTH
-source ../../00-ENV/env.sh # personal setup to inject PAT
 kubectl -n test create secret generic cdtarget-token \
                   --from-literal=AZP_TOKEN=$PAT
 # apply cdtarget resource
@@ -260,7 +266,7 @@ kubectl -n test describe deployment cdtarget-agent
 ```bash
 # cleanup test deployment
 kubectl -n test delete -f ../samples/cnad_cdtarget_sample.yaml
-kubectl -n test delete secret cdtarget-proxy cdtarget-token
+kubectl -n test delete secret cdtarget-proxy cdtarget-token cdtarget-regcred
 kubectl delete ns test
 # cleanup OLM bundle & OLM installation
 operator-sdk cleanup operator --delete-all --namespace='cdtarget-operator'

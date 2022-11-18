@@ -384,18 +384,29 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	r.Status().Update(ctx, operatorCR)
 
 	// OLM condition reporting
-	condition, err := conditions.InClusterFactory{Client: r.Client}.
-		NewCondition(apiv2.ConditionType(apiv2.Upgradeable))
-
-	if err != nil {
-		return ctrl.Result{}, err
+	cdo := &appsv1.Deployment{}
+	err = r.Get(ctx, types.NamespacedName{Name: "cdtarget-controller-manager",
+		Namespace: "cdtarget-operator"}, cdo)
+	if err != nil && errors.IsNotFound(err) {
+		logger.Info("cdtarget-controller-manager not found")
+	} else if err != nil {
+		logger.Error(err, "Error fetching CDTarget operator deployment")
 	}
 
-	err = condition.Set(ctx, metav1.ConditionTrue,
-		conditions.WithReason("OperatorUpgradeable"),
-		conditions.WithMessage("The operator is currently upgradeable"))
-	if err != nil {
-		return ctrl.Result{}, err
+	if len(cdo.ObjectMeta.Annotations["olm.owner"]) != 0 {
+		condition, err := conditions.InClusterFactory{Client: r.Client}.
+			NewCondition(apiv2.ConditionType(apiv2.Upgradeable))
+
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		err = condition.Set(ctx, metav1.ConditionTrue,
+			conditions.WithReason("OperatorUpgradeable"),
+			conditions.WithMessage("The operator is currently upgradeable"))
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})

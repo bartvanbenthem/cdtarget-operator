@@ -237,9 +237,6 @@ kubectl create ns test
 source ../../00-ENV/env.sh # personal setup to inject PAT
 kubectl -n test create secret generic cdtarget-token \
                   --from-literal=AZP_TOKEN=$PAT
-# prestage example ca certificate
-kubectl -n test create secret generic cdtarget-ca \
-                   --from-file="../samples/CERTIFICATE.crt"    
 # apply cdtarget resource
 # for scaling >1 replica don`t set the agentName field in the CR
 kubectl -n test apply -f ../samples/cnad_cdtarget_sample.yaml

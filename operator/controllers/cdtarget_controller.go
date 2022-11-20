@@ -88,33 +88,6 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
 	}
 
-	// Fetch CDTarget proxy secret object if it exists
-	// Only if it does not exist create the proxy secret
-	// so proxy values can be added later to enable proxy functionality
-	// the controller is not an owner after initial creation
-	proxy := &corev1.Secret{}
-	err = r.Get(ctx, types.NamespacedName{Name: operatorCR.Spec.ProxyRef,
-		Namespace: operatorCR.Namespace}, proxy)
-	if err != nil && errors.IsNotFound(err) {
-		logger.Info("Existing Proxy Secret Not Found")
-		logger.Info("Creating Proxy Secret, add values later to enable proxy functionality")
-		proxy = r.proxySecretForCDTarget(operatorCR)
-		err = r.Create(ctx, proxy)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-	} else if err != nil {
-		logger.Error(err, "Error getting operator CDTarget Proxy Secret object")
-		meta.SetStatusCondition(&operatorCR.Status.Conditions, metav1.Condition{
-			Type:               "ReconcileSuccess",
-			Status:             metav1.ConditionFalse,
-			Reason:             cnadv1alpha1.ReasonSecretNotAvailable,
-			LastTransitionTime: metav1.NewTime(time.Now()),
-			Message:            fmt.Sprintf("unable to configure Proxy Secret: %s", err.Error()),
-		})
-		return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
-	}
-
 	// Fetch CDTarget token secret object if it exists
 	// Only if it does not exist create the token secret
 	// so token values can be added later to enable token functionality
@@ -138,33 +111,6 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			Reason:             cnadv1alpha1.ReasonSecretNotAvailable,
 			LastTransitionTime: metav1.NewTime(time.Now()),
 			Message:            fmt.Sprintf("unable to configure Token Secret: %s", err.Error()),
-		})
-		return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
-	}
-
-	// Fetch CDTarget CA certificate secret object if it exists
-	// Only if it does not exist create the CA certificate secret
-	// So certificates can be added later to inject in the agent
-	// the controller is not an owner after initial creation
-	ca := &corev1.Secret{}
-	err = r.Get(ctx, types.NamespacedName{Name: operatorCR.Spec.CACertRef,
-		Namespace: operatorCR.Namespace}, ca)
-	if err != nil && errors.IsNotFound(err) {
-		logger.Info("Existing CA Certificate Secret Not Found")
-		logger.Info("Creating CA Certificate Secret, add values later to enable azure pipeline Auth")
-		ca = r.caCertSecretForCDTarget(operatorCR)
-		err = r.Create(ctx, ca)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-	} else if err != nil {
-		logger.Error(err, "Error getting operator CDTarget CA Certificate Secret object")
-		meta.SetStatusCondition(&operatorCR.Status.Conditions, metav1.Condition{
-			Type:               "ReconcileSuccess",
-			Status:             metav1.ConditionFalse,
-			Reason:             cnadv1alpha1.ReasonSecretNotAvailable,
-			LastTransitionTime: metav1.NewTime(time.Now()),
-			Message:            fmt.Sprintf("unable to configure CA Certificate Secret: %s", err.Error()),
 		})
 		return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
 	}
@@ -264,8 +210,8 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	azp = assets.GetNetworkPolicyFromFile("manifests/az-pipelines-pool.yaml")
 	azp.ObjectMeta.Name = "azure-pipelines-pool"
 	azp.ObjectMeta.Namespace = operatorCR.Namespace
-	azp.ObjectMeta.Labels = operatorCR.Spec.PodSelector
-	azp.Spec.PodSelector.MatchLabels = operatorCR.Spec.PodSelector
+	azp.ObjectMeta.Labels = operatorCR.Spec.AdditionalSelector
+	azp.Spec.PodSelector.MatchLabels = operatorCR.Spec.AdditionalSelector
 	if err = ctrl.SetControllerReference(operatorCR, azp, r.Scheme); err != nil {
 		logger.Error(err, "Failed to set NetworkPolicy controller reference")
 		return ctrl.Result{}, err

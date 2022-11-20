@@ -15,7 +15,7 @@ spec:
   tokenRef: cdtarget-token
   proxyRef: cdtarget-proxy
   caCertRef: cdtarget-ca
-  podSelector:
+  additionalSelector:
     app: cdtarget-agent
   ip:
   - 10.0.0.1

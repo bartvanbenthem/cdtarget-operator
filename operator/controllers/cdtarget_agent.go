@@ -4,12 +4,11 @@ import (
 	cnadv1alpha1 "github.com/bartvanbenthem/cdtarget-operator/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (r *CDTargetReconciler) configMapForCDTarget(t *cnadv1alpha1.CDTarget) *v1.ConfigMap {
-	ls := t.Spec.PodSelector
+func (r *CDTargetReconciler) configMapForCDTarget(t *cnadv1alpha1.CDTarget) *corev1.ConfigMap {
+	ls := t.Spec.AdditionalSelector
 	name := "cdtarget-config"
 
 	data := map[string]string{}
@@ -19,7 +18,7 @@ func (r *CDTargetReconciler) configMapForCDTarget(t *cnadv1alpha1.CDTarget) *v1.
 	data["AZP_AGENT_NAME"] = string(t.Spec.Config.AgentName)
 	data["AGENT_MTU_VALUE"] = string(t.Spec.Config.MTUValue)
 
-	cm := &v1.ConfigMap{
+	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: t.Namespace,
@@ -31,33 +30,8 @@ func (r *CDTargetReconciler) configMapForCDTarget(t *cnadv1alpha1.CDTarget) *v1.
 	return cm
 }
 
-func (r *CDTargetReconciler) proxySecretForCDTarget(t *cnadv1alpha1.CDTarget) *corev1.Secret {
-	ls := t.Spec.PodSelector
-	name := t.Spec.ProxyRef
-
-	secdata := map[string]string{}
-	secdata["HTTP_PROXY"] = string("")
-	secdata["HTTPS_PROXY"] = string("")
-	secdata["FTP_PROXY"] = string("")
-	secdata["PROXY_URL"] = string("")
-	secdata["PROXY_USER"] = string("")
-	secdata["PROXY_PW"] = string("")
-	secdata["NO_PROXY"] = string("")
-
-	sec := corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Labels:    ls,
-			Name:      name,
-			Namespace: t.Namespace,
-		},
-		StringData: secdata,
-	}
-
-	return &sec
-}
-
 func (r *CDTargetReconciler) tokenSecretForCDTarget(t *cnadv1alpha1.CDTarget) *corev1.Secret {
-	ls := t.Spec.PodSelector
+	ls := t.Spec.AdditionalSelector
 	name := t.Spec.TokenRef
 
 	secdata := map[string]string{}
@@ -75,27 +49,12 @@ func (r *CDTargetReconciler) tokenSecretForCDTarget(t *cnadv1alpha1.CDTarget) *c
 	return &sec
 }
 
-func (r *CDTargetReconciler) caCertSecretForCDTarget(t *cnadv1alpha1.CDTarget) *corev1.Secret {
-	ls := t.Spec.PodSelector
-	name := t.Spec.CACertRef
-
-	secdata := map[string][]byte{}
-	secdata["CERTIFICATE.crt"] = []byte("")
-
-	sec := corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Labels:    ls,
-			Name:      name,
-			Namespace: t.Namespace,
-		},
-		Data: secdata,
-	}
-
-	return &sec
+func boolPointer(b bool) *bool {
+	return &b
 }
 
 func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *appsv1.Deployment {
-	ls := t.Spec.PodSelector
+	ls := t.Spec.AdditionalSelector
 	replicas := t.Spec.MinReplicaCount
 	cmd := []string{"/bin/sh", "-c", "update-ca-certificates"}
 
@@ -120,6 +79,7 @@ func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *ap
 						VolumeSource: corev1.VolumeSource{
 							Secret: &corev1.SecretVolumeSource{
 								SecretName: t.Spec.CACertRef,
+								Optional:   boolPointer(true),
 							},
 						},
 					}},
@@ -166,7 +126,8 @@ func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *ap
 									ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
 										LocalObjectReference: corev1.LocalObjectReference{
 											Name: "cdtarget-config"},
-										Key: "AZP_WORK",
+										Optional: boolPointer(true),
+										Key:      "AZP_WORK",
 									},
 								},
 							},
@@ -176,7 +137,8 @@ func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *ap
 									ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
 										LocalObjectReference: corev1.LocalObjectReference{
 											Name: "cdtarget-config"},
-										Key: "AZP_AGENT_NAME",
+										Optional: boolPointer(true),
+										Key:      "AZP_AGENT_NAME",
 									},
 								},
 							},
@@ -186,7 +148,8 @@ func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *ap
 									ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
 										LocalObjectReference: corev1.LocalObjectReference{
 											Name: "cdtarget-config"},
-										Key: "AGENT_MTU_VALUE",
+										Optional: boolPointer(true),
+										Key:      "AGENT_MTU_VALUE",
 									},
 								},
 							},
@@ -206,7 +169,8 @@ func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *ap
 									SecretKeyRef: &corev1.SecretKeySelector{
 										LocalObjectReference: corev1.LocalObjectReference{
 											Name: t.Spec.ProxyRef},
-										Key: "HTTP_PROXY",
+										Optional: boolPointer(true),
+										Key:      "HTTP_PROXY",
 									},
 								},
 							},
@@ -216,7 +180,8 @@ func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *ap
 									SecretKeyRef: &corev1.SecretKeySelector{
 										LocalObjectReference: corev1.LocalObjectReference{
 											Name: t.Spec.ProxyRef},
-										Key: "HTTPS_PROXY",
+										Optional: boolPointer(true),
+										Key:      "HTTPS_PROXY",
 									},
 								},
 							},
@@ -226,7 +191,8 @@ func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *ap
 									SecretKeyRef: &corev1.SecretKeySelector{
 										LocalObjectReference: corev1.LocalObjectReference{
 											Name: t.Spec.ProxyRef},
-										Key: "PROXY_USER",
+										Optional: boolPointer(true),
+										Key:      "PROXY_USER",
 									},
 								},
 							},
@@ -236,7 +202,8 @@ func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *ap
 									SecretKeyRef: &corev1.SecretKeySelector{
 										LocalObjectReference: corev1.LocalObjectReference{
 											Name: t.Spec.ProxyRef},
-										Key: "PROXY_PW",
+										Optional: boolPointer(true),
+										Key:      "PROXY_PW",
 									},
 								},
 							},
@@ -246,7 +213,8 @@ func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *ap
 									SecretKeyRef: &corev1.SecretKeySelector{
 										LocalObjectReference: corev1.LocalObjectReference{
 											Name: t.Spec.ProxyRef},
-										Key: "PROXY_URL",
+										Optional: boolPointer(true),
+										Key:      "PROXY_URL",
 									},
 								},
 							},
@@ -256,7 +224,8 @@ func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *ap
 									SecretKeyRef: &corev1.SecretKeySelector{
 										LocalObjectReference: corev1.LocalObjectReference{
 											Name: t.Spec.ProxyRef},
-										Key: "FTP_PROXY",
+										Optional: boolPointer(true),
+										Key:      "FTP_PROXY",
 									},
 								},
 							},
@@ -266,7 +235,8 @@ func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *ap
 									SecretKeyRef: &corev1.SecretKeySelector{
 										LocalObjectReference: corev1.LocalObjectReference{
 											Name: t.Spec.ProxyRef},
-										Key: "NO_PROXY",
+										Optional: boolPointer(true),
+										Key:      "NO_PROXY",
 									},
 								},
 							},

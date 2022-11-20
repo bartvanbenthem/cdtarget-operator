@@ -205,7 +205,7 @@ make manifests
 # docker and github repo username
 export USERNAME='bartvanbenthem'
 # image and bundle version
-export VERSION=0.1.22
+export VERSION=0.1.25
 # operator repo and name
 export OPERATOR_NAME='cdtarget-operator'
 
@@ -234,12 +234,6 @@ operator-sdk run bundle docker.io/$USERNAME/$OPERATOR_NAME-bundle:v$VERSION --na
 source ../../00-ENV/env.sh # personal setup to inject PAT
 # test cdtarget CR 
 kubectl create ns test
-# create regcred secret
-kubectl -n test create secret docker-registry cdtarget-regcred \
-          --docker-server='https://index.docker.io/v1/' \
-          --docker-username='bartvanbenthem' \
-          --docker-password=$DOCKERHUB_PW \
-          --docker-email='mail@gofound.nl'
 # prestage the PAT (token) Secret for succesfull Azure AUTH
 kubectl -n test create secret generic cdtarget-token \
                   --from-literal=AZP_TOKEN=$PAT
@@ -248,11 +242,12 @@ kubectl -n test create secret generic cdtarget-token \
 kubectl -n test apply -f ../samples/cnad_cdtarget_sample.yaml
 kubectl -n test describe cdtarget cdtarget-agent
 # KEDA scaled object
+kubectl -n test create secret generic cdtarget-proxy \
+                  --from-literal=HTTP_PROXY='' \
+                  --from-literal=NO_PROXY='10.0.0.0/8' 
 kubectl -n test apply -f ../agent/tmpl.scaled-object.yaml
 # test CDTarget created objects
 kubectl -n test describe secret cdtarget-token
-kubectl -n test describe secret cdtarget-ca
-kubectl -n test describe secret cdtarget-proxy
 kubectl -n test describe configmap cdtarget-config
 kubectl -n test describe networkpolicies azure-pipelines-pool
 kubectl -n test describe networkpolicies cdtarget-agent
@@ -266,25 +261,33 @@ kubectl -n test describe deployment cdtarget-agent
 ```bash
 # cleanup test deployment
 kubectl -n test delete -f ../samples/cnad_cdtarget_sample.yaml
-kubectl -n test delete secret cdtarget-proxy cdtarget-token cdtarget-regcred
 kubectl delete ns test
 # cleanup OLM bundle & OLM installation
 operator-sdk cleanup operator --delete-all --namespace='cdtarget-operator'
 kubectl delete ns 'cdtarget-operator'
 ```
 
-### Enable Proxy config
+### Create pull secret
+```bash
+# create regcred secret
+kubectl -n test create secret docker-registry cdtarget-regcred \
+          --docker-server='https://index.docker.io/v1/' \
+          --docker-username='bartvanbenthem' \
+          --docker-password=$DOCKERHUB_PW \
+          --docker-email='mail@gofound.nl'
+```
+### Create & Update Proxy config
 ```bash
 # update secret containing proxy settings
 kubectl -n test create secret generic cdtarget-proxy --dry-run=client -o yaml \
-                  --from-literal=PROXY_USER='username' \
-                  --from-literal=PROXY_PW='password' \
-                  --from-literal=PROXY_URL='http://user:password@proxy.gofound.nl:8080' \
-                  --from-literal=HTTP_PROXY='http://proxy.gofound.nl:8080' \
-                  --from-literal=HTTPS_PROXY='https://proxy.gofound.nl:8080' \
+                  --from-literal=PROXY_USER='' \
+                  --from-literal=PROXY_PW='' \
+                  --from-literal=PROXY_URL='' \
+                  --from-literal=HTTP_PROXY='' \
+                  --from-literal=HTTPS_PROXY='' \
                   --from-literal=FTP_PROXY='' \
-                  --from-literal=NO_PROXY='' | kubectl apply -f -
-kubectl -n test scale deployment cdtarget-agent --replicas=0  
+                  --from-literal=NO_PROXY='10.0.0.0/8' | kubectl apply -f -
+kubectl -n test scale deployment cdtarget-agent-keda --replicas=0  
 ```
 
 ### Update allowed ports
@@ -310,7 +313,7 @@ EOF
 # update CDTarget PAT
 kubectl -n test create secret generic cdtarget-token --dry-run=client -o yaml \
                   --from-literal=AZP_TOKEN=$PAT | kubectl apply -f -
-kubectl -n test scale deployment cdtarget-agent --replicas=0  
+kubectl -n test scale deployment cdtarget-agent-keda --replicas=0  
 ```
 
 ### Inject CA Certificates from file
@@ -318,11 +321,11 @@ kubectl -n test scale deployment cdtarget-agent --replicas=0
 * from the custom resource a reference is made to the prestaged secret
 ```bash
 # inject CA Certificates to CDTarget agents
-# in /usr/local/share/ca-certificates/CERTIFICATE.crt
+# in /usr/local/share/ca-certificates/
 # trust store: /etc/ssl/certs/ca-certificates.crt
 kubectl -n test create secret generic cdtarget-ca --dry-run=client -o yaml \
                 --from-file="../samples/CERTIFICATE.crt" | kubectl apply -f -
-kubectl -n test scale deployment cdtarget-agent --replicas=0  
+kubectl -n test scale deployment cdtarget-agent-keda --replicas=0  
 ```
 
 ### Uninstall Operator Lifecycle Manager

@@ -35,6 +35,11 @@ spec:
           spec:
             description: CDTargetSpec defines the desired state of CDTarget
             properties:
+              additionalSelector:
+                additionalProperties:
+                  type: string
+                description: specify the pod selector key value pair
+                type: object
               agentImage:
                 description: pipeline agent image
                 type: string
@@ -86,11 +91,6 @@ spec:
               minReplicaCount:
                 format: int32
                 type: integer
-              podSelector:
-                additionalProperties:
-                  type: string
-                description: specify the pod selector key value pair
-                type: object
               proxyRef:
                 description: reference to secret that contains the the Proxy settings
                 type: string
@@ -98,8 +98,8 @@ spec:
                 description: reference to secret that contains the PAT
                 type: string
             required:
+            - additionalSelector
             - caCertRef
-            - podSelector
             - proxyRef
             - tokenRef
             type: object

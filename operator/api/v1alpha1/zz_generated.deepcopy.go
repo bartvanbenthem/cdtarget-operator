@@ -109,8 +109,8 @@ func (in *CDTargetSpec) DeepCopyInto(out *CDTargetSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
-	if in.PodSelector != nil {
-		in, out := &in.PodSelector, &out.PodSelector
+	if in.AdditionalSelector != nil {
+		in, out := &in.AdditionalSelector, &out.AdditionalSelector
 		*out = make(map[string]string, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val

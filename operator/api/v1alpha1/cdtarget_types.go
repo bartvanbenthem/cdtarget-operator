@@ -41,7 +41,7 @@ type CDTargetSpec struct {
 	// IP is a slice of string that contains all the CDTarget IPs
 	IP []string `json:"ip,omitempty"`
 	// specify the pod selector key value pair
-	PodSelector map[string]string `json:"podSelector"`
+	AdditionalSelector map[string]string `json:"additionalSelector"`
 	// pipeline agent image
 	AgentImage string `json:"agentImage,omitempty"`
 	// image pull secrets

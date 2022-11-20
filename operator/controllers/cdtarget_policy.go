@@ -29,7 +29,7 @@ import (
 )
 
 func (r *CDTargetReconciler) networkPolicyForCDTarget(t *cnadv1alpha1.CDTarget, portList []int32) *netv1.NetworkPolicy {
-	ls := t.Spec.PodSelector
+	ls := t.Spec.AdditionalSelector
 	peers := peersForCDTarget(t.Spec.IP)
 	ports := portsForCDTarget(portList)
 
@@ -41,7 +41,7 @@ func (r *CDTargetReconciler) networkPolicyForCDTarget(t *cnadv1alpha1.CDTarget, 
 		},
 		Spec: netv1.NetworkPolicySpec{
 			PodSelector: metav1.LabelSelector{
-				MatchLabels: t.Spec.PodSelector,
+				MatchLabels: t.Spec.AdditionalSelector,
 			},
 			Egress: []netv1.NetworkPolicyEgressRule{{
 				Ports: ports,

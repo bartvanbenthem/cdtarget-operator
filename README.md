@@ -3,14 +3,6 @@ Automate the configuration & lifecycle of Azure self-hosted pipelines agents and
 
 ## Operator Design
 
-### Determine the core aspects
-* Problem description
-* Designing the API and CRD
-* Required resources
-* Target reconciliation loop design
-* Upgrade and downgrade strategy
-* Failure reporting
-
 ###  Describing the problem
 For us as namespace administrators (cluster users) the CRUD functionality on network policy objects are unauthorized by security design and can only be changed by the cluster administrators. To enable end tot end automation, we need the abillity to add target IPs ourselves to a specified set of allowed egress ports trough a Custom Resource, the ports are specified by the the cluster administrators from centralized configuration. An Operator should automatically create or update a network policy containing the specified IPs defined in the CustomResource. The operator should als configure and manage the lifecycle of the self-hosted pipeline agents, be able to inject proxy configurations and CA certificates trough Kubernetes secrets and simplify the enablement of event driven autoscaling.  
 
@@ -55,9 +47,11 @@ type CDTargetSpec struct {
 	// IP is a slice of string that contains all the CDTarget IPs
 	IP []string `json:"ip,omitempty"`
 	// specify the pod selector key value pair
-	PodSelector map[string]string `json:"podSelector"`
+	AdditionalSelector map[string]string `json:"additionalSelector"`
 	// pipeline agent image
 	AgentImage string `json:"agentImage,omitempty"`
+	// image pull secrets
+	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
 	// +optional
 	MinReplicaCount *int32 `json:"minReplicaCount,omitempty"`
 	// +optional
@@ -66,6 +60,8 @@ type CDTargetSpec struct {
 	ProxyRef string `json:"proxyRef"`
 	// reference to secret that contains the PAT
 	TokenRef string `json:"tokenRef"`
+	// reference to secret that contains the CA certificates
+	CACertRef string `json:"caCertRef"`
 	// AzureDevPortal is configuring the Azure DevOps pool settings of the Agent
 	// by using additional environment variables.
 	Config AgentConfig `json:"config,omitempty"`
@@ -98,6 +94,8 @@ metadata:
   namespace: test
 spec:
   agentImage: bartvanbenthem/agent:latest
+  imagePullSecrets:
+  - name: cdtarget-regcred
   minReplicaCount: 1
   maxReplicaCount: 3
   config:
@@ -109,7 +107,7 @@ spec:
   tokenRef: cdtarget-token
   proxyRef: cdtarget-proxy
   caCertRef: cdtarget-ca
-  podSelector:
+  additionalSelector:
     app: cdtarget-agent 
   ip:
   - 10.0.0.1
@@ -121,7 +119,7 @@ spec:
 What other resources are required:
 ```Go
 //+kubebuilder:rbac:groups=networking.k8s.io,resources=networkpolicies,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create
+//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create
 //+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete

@@ -47,8 +47,8 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(apiv2.AddToScheme(scheme))
 	utilruntime.Must(cnadv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(apiv2.AddToScheme(scheme))
 	utilruntime.Must(kedav2.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }

@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"fmt"
+
 	cnadv1alpha1 "github.com/bartvanbenthem/cdtarget-operator/api/v1alpha1"
 	kedav2 "github.com/kedacore/keda/v2/apis/keda/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -8,6 +10,7 @@ import (
 
 func (r *CDTargetReconciler) scaledObjectForCDTarget(t *cnadv1alpha1.CDTarget) *kedav2.ScaledObject {
 	name := "cdtarget-config"
+	triggerAuth := fmt.Sprintf("%s-trigger-auth", t.Spec.Config.PoolName)
 
 	triggerMeta := map[string]string{
 		"poolName":               t.Spec.Config.PoolName,
@@ -29,7 +32,7 @@ func (r *CDTargetReconciler) scaledObjectForCDTarget(t *cnadv1alpha1.CDTarget) *
 			Triggers: []kedav2.ScaleTriggers{{
 				Type: "azure-pipelines",
 				AuthenticationRef: &kedav2.ScaledObjectAuthRef{
-					Name: "pipeline-trigger-auth",
+					Name: triggerAuth,
 				},
 				Metadata: triggerMeta,
 			}},
@@ -41,7 +44,7 @@ func (r *CDTargetReconciler) scaledObjectForCDTarget(t *cnadv1alpha1.CDTarget) *
 
 func (r *CDTargetReconciler) triggerAuthenticationForCDTarget(t *cnadv1alpha1.CDTarget) *kedav2.TriggerAuthentication {
 
-	name := "pipeline-trigger-auth"
+	name := fmt.Sprintf("%s-trigger-auth", t.Spec.Config.PoolName)
 
 	ta := &kedav2.TriggerAuthentication{
 		ObjectMeta: metav1.ObjectMeta{

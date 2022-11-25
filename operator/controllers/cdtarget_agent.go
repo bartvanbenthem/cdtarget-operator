@@ -8,7 +8,7 @@ import (
 )
 
 func (r *CDTargetReconciler) configMapForCDTarget(t *cnadv1alpha1.CDTarget) *corev1.ConfigMap {
-	ls := t.Spec.AdditionalSelector
+
 	name := "cdtarget-config"
 
 	data := map[string]string{}
@@ -22,7 +22,7 @@ func (r *CDTargetReconciler) configMapForCDTarget(t *cnadv1alpha1.CDTarget) *cor
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: t.Namespace,
-			Labels:    ls,
+			Labels:    t.Spec.AdditionalSelector,
 		},
 		Data: data,
 	}
@@ -31,7 +31,7 @@ func (r *CDTargetReconciler) configMapForCDTarget(t *cnadv1alpha1.CDTarget) *cor
 }
 
 func (r *CDTargetReconciler) tokenSecretForCDTarget(t *cnadv1alpha1.CDTarget) *corev1.Secret {
-	ls := t.Spec.AdditionalSelector
+
 	name := t.Spec.TokenRef
 
 	secdata := map[string]string{}
@@ -39,7 +39,7 @@ func (r *CDTargetReconciler) tokenSecretForCDTarget(t *cnadv1alpha1.CDTarget) *c
 
 	sec := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Labels:    ls,
+			Labels:    t.Spec.AdditionalSelector,
 			Name:      name,
 			Namespace: t.Namespace,
 		},
@@ -54,24 +54,23 @@ func boolPointer(b bool) *bool {
 }
 
 func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *appsv1.Deployment {
-	ls := t.Spec.AdditionalSelector
-	replicas := t.Spec.MinReplicaCount
+
 	cmd := []string{"/bin/sh", "-c", "update-ca-certificates"}
 
 	dep := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      t.Name,
 			Namespace: t.Namespace,
-			Labels:    ls,
+			Labels:    t.Spec.AdditionalSelector,
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: replicas,
+			Replicas: t.Spec.MinReplicaCount,
 			Selector: &metav1.LabelSelector{
-				MatchLabels: ls,
+				MatchLabels: t.Spec.AdditionalSelector,
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: ls,
+					Labels: t.Spec.AdditionalSelector,
 				},
 				Spec: corev1.PodSpec{
 					Volumes: []corev1.Volume{{

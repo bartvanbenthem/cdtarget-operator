@@ -25,6 +25,7 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	kedav2 "github.com/kedacore/keda/v2/apis/keda/v1alpha1"
 	apiv2 "github.com/operator-framework/api/pkg/operators/v2"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -48,6 +49,7 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(apiv2.AddToScheme(scheme))
 	utilruntime.Must(cnadv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(kedav2.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 

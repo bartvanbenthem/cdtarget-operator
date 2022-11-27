@@ -9,7 +9,7 @@ import (
 )
 
 func (r *CDTargetReconciler) scaledObjectForCDTarget(t *cnadv1alpha1.CDTarget) *kedav2.ScaledObject {
-	name := "cdtarget-config"
+	name := t.ObjectMeta.Name
 	triggerAuth := fmt.Sprintf("%s-trigger-auth", t.Spec.Config.PoolName)
 
 	triggerMeta := map[string]string{

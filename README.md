@@ -203,7 +203,7 @@ make manifests
 # docker and github repo username
 export USERNAME='bartvanbenthem'
 # image and bundle version
-export VERSION=0.1.26
+export VERSION=0.2.1
 # operator repo and name
 export OPERATOR_NAME='cdtarget-operator'
 
@@ -235,21 +235,20 @@ kubectl create ns test
 # prestage the PAT (token) Secret for succesfull Azure AUTH
 kubectl -n test create secret generic cdtarget-token \
                   --from-literal=AZP_TOKEN=$PAT
+# prestage minimal proxy config
+kubectl -n test create secret generic cdtarget-proxy \
+                  --from-literal=HTTP_PROXY='' \
+                  --from-literal=NO_PROXY='10.0.0.0/8'
 # apply cdtarget resource
 # for scaling >1 replica don`t set the agentName field in the CR
 kubectl -n test apply -f ../samples/cnad_cdtarget_sample.yaml
 kubectl -n test describe cdtarget cdtarget-agent
-# KEDA scaled object
-kubectl -n test create secret generic cdtarget-proxy \
-                  --from-literal=HTTP_PROXY='' \
-                  --from-literal=NO_PROXY='10.0.0.0/8' 
-kubectl -n test apply -f ../agent/tmpl.scaled-object.yaml
 # test CDTarget created objects
 kubectl -n test describe secret cdtarget-token
 kubectl -n test describe configmap cdtarget-config
 kubectl -n test describe networkpolicies azure-pipelines-pool
 kubectl -n test describe networkpolicies cdtarget-agent
-kubectl -n test describe scaledobjects.keda.sh azure-pipelines-scaledobject
+kubectl -n test describe scaledobject cdtarget-agent-keda
 kubectl -n test describe horizontalpodautoscalers.autoscaling
 kubectl -n test describe deployment cdtarget-agent
 

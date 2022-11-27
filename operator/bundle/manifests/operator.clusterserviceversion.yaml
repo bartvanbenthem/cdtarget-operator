@@ -16,7 +16,7 @@ metadata:
     capabilities: Basic Install
     operators.operatorframework.io/builder: operator-sdk-v1.24.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
-  name: operator.v0.1.26
+  name: operator.v0.2.1
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -104,6 +104,30 @@ spec:
           - list
           - watch
         - apiGroups:
+          - keda.sh
+          resources:
+          - scaledobjects
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - keda.sh
+          resources:
+          - triggerauthentications
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
           - networking.k8s.io
           resources:
           - networkpolicies
@@ -183,7 +207,7 @@ spec:
                 - --leader-elect
                 command:
                 - /manager
-                image: docker.io/bartvanbenthem/cdtarget-operator:v0.1.26
+                image: docker.io/bartvanbenthem/cdtarget-operator:v0.2.1
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -269,4 +293,4 @@ spec:
   provider:
     name: gofound
     url: gofound.nl
-  version: 0.1.26
+  version: 0.2.1

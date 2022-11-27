@@ -23,6 +23,7 @@ import (
 
 	"github.com/bartvanbenthem/cdtarget-operator/assets"
 	"github.com/bartvanbenthem/cdtarget-operator/controllers/metrics"
+	kedav2 "github.com/kedacore/keda/v2/apis/keda/v1alpha1"
 	apiv2 "github.com/operator-framework/api/pkg/operators/v2"
 	"github.com/operator-framework/operator-lib/conditions"
 	appsv1 "k8s.io/api/apps/v1"
@@ -56,6 +57,8 @@ type CDTargetReconciler struct {
 //+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=operators.coreos.com,resources=operatorconditions,verbs=get;list;watch
+//+kubebuilder:rbac:groups=keda.sh,resources=scaledobjects,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=keda.sh,resources=triggerauthentications,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -111,6 +114,39 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			Reason:             cnadv1alpha1.ReasonSecretNotAvailable,
 			LastTransitionTime: metav1.NewTime(time.Now()),
 			Message:            fmt.Sprintf("unable to configure Token Secret: %s", err.Error()),
+		})
+		return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
+	}
+
+	// Fetch TriggerAuthentication object if it exists
+	// Only if it does not exist create the TriggerAuthentication
+	// the controller is not an owner after initial creation
+	trigauth := &kedav2.TriggerAuthentication{}
+	err = r.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-trigger-auth", operatorCR.Spec.Config.PoolName),
+		Namespace: operatorCR.Namespace}, trigauth)
+	if err != nil && errors.IsNotFound(err) {
+		logger.Info("Existing TriggerAuthentication Not Found")
+		logger.Info("Creating TriggerAuthentication")
+		trigauth = r.triggerAuthenticationForCDTarget(operatorCR)
+		err = r.Create(ctx, trigauth)
+		if err != nil {
+			meta.SetStatusCondition(&operatorCR.Status.Conditions, metav1.Condition{
+				Type:               "ReconcileSuccess",
+				Status:             metav1.ConditionFalse,
+				Reason:             cnadv1alpha1.ReasonOperandTriggerAuthenticationFailed,
+				LastTransitionTime: metav1.NewTime(time.Now()),
+				Message:            fmt.Sprintf("unable to update operand TriggerAuthentication: %s", err.Error()),
+			})
+			return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
+		}
+	} else if err != nil {
+		logger.Error(err, "Error getting existing CDTArget TriggerAuthentication.")
+		meta.SetStatusCondition(&operatorCR.Status.Conditions, metav1.Condition{
+			Type:               "ReconcileSuccess",
+			Status:             metav1.ConditionFalse,
+			Reason:             cnadv1alpha1.ReasonTriggerAuthenticationNotAvailable,
+			LastTransitionTime: metav1.NewTime(time.Now()),
+			Message:            fmt.Sprintf("unable to get operand TriggerAuthentication: %s", err.Error()),
 		})
 		return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
 	}
@@ -318,6 +354,48 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
 	}
 
+	// Fetch ScaledObject if it exists
+	// After creation the ScaledObject is never updated by the operator
+	// The operator does own the ScaledObject object for re-creation
+	so := &kedav2.ScaledObject{}
+	create = false
+	err = r.Get(ctx, types.NamespacedName{Name: operatorCR.Name, Namespace: operatorCR.Namespace}, so)
+	if err != nil && errors.IsNotFound(err) {
+		create = true
+	} else if err != nil {
+		logger.Error(err, "Error getting CDTArget Agent ScaledObject.")
+		meta.SetStatusCondition(&operatorCR.Status.Conditions, metav1.Condition{
+			Type:               "ReconcileSuccess",
+			Status:             metav1.ConditionFalse,
+			Reason:             cnadv1alpha1.ReasonScaledObjectNotAvailable,
+			LastTransitionTime: metav1.NewTime(time.Now()),
+			Message:            fmt.Sprintf("unable to get operand ScaledObject: %s", err.Error()),
+		})
+		return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
+	}
+
+	so = r.scaledObjectForCDTarget(operatorCR)
+	if err = ctrl.SetControllerReference(operatorCR, so, r.Scheme); err != nil {
+		logger.Error(err, "Failed to set ScaledObject controller reference")
+		return ctrl.Result{}, err
+	}
+
+	if create {
+		logger.Info(fmt.Sprintf("Creating ScaledObject %s", so.Name))
+		err = r.Create(ctx, so)
+	}
+
+	if err != nil {
+		meta.SetStatusCondition(&operatorCR.Status.Conditions, metav1.Condition{
+			Type:               "ReconcileSuccess",
+			Status:             metav1.ConditionFalse,
+			Reason:             cnadv1alpha1.ReasonOperandScaledObjectFailed,
+			LastTransitionTime: metav1.NewTime(time.Now()),
+			Message:            fmt.Sprintf("unable to create operand ScaledObject: %s", err.Error()),
+		})
+		return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
+	}
+
 	// Finalize reconcile loop and set succesfull status condition
 	meta.SetStatusCondition(&operatorCR.Status.Conditions, metav1.Condition{
 		Type:               "ReconcileSuccess",
@@ -365,5 +443,7 @@ func (r *CDTargetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&netv1.NetworkPolicy{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.ConfigMap{}).
+		Owns(&kedav2.ScaledObject{}).
+		Owns(&kedav2.TriggerAuthentication{}).
 		Complete(r)
 }

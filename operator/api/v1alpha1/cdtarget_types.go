@@ -24,16 +24,20 @@ import (
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 const (
-	ReasonCRNotAvailable             = "OperatorResourceNotAvailable"
-	ReasonNetworkPolicyNotAvailable  = "OperandNetworkPolicyNotAvailable"
-	ReasonOperandNetworkPolicyFailed = "OperandNetworkPolicyFailed"
-	ReasonConfigMapNotAvailable      = "ConfigMapNotAvailable"
-	ReasonOperandConfigMapFailed     = "OperandConfigMapFailed"
-	ReasonDeploymentNotAvailable     = "DeploymentNotAvailable"
-	ReasonOperandDeploymentFailed    = "OperandDeploymentFailed"
-	ReasonSecretNotAvailable         = "SecretNotAvailable"
-	ReasonOperandSecretFailed        = "OperandSecretFailed"
-	ReasonSucceeded                  = "OperatorSucceeded"
+	ReasonCRNotAvailable                     = "OperatorResourceNotAvailable"
+	ReasonNetworkPolicyNotAvailable          = "OperandNetworkPolicyNotAvailable"
+	ReasonOperandNetworkPolicyFailed         = "OperandNetworkPolicyFailed"
+	ReasonConfigMapNotAvailable              = "ConfigMapNotAvailable"
+	ReasonOperandConfigMapFailed             = "OperandConfigMapFailed"
+	ReasonDeploymentNotAvailable             = "DeploymentNotAvailable"
+	ReasonOperandDeploymentFailed            = "OperandDeploymentFailed"
+	ReasonSecretNotAvailable                 = "SecretNotAvailable"
+	ReasonOperandSecretFailed                = "OperandSecretFailed"
+	ReasonScaledObjectNotAvailable           = "ScaledObjectNotAvailable"
+	ReasonOperandScaledObjectFailed          = "OperandScaledObjectFailed"
+	ReasonTriggerAuthenticationNotAvailable  = "TriggerAuthenticationNotAvailable"
+	ReasonOperandTriggerAuthenticationFailed = "OperandTriggerAuthenticationFailed"
+	ReasonSucceeded                          = "OperatorSucceeded"
 )
 
 // CDTargetSpec defines the desired state of CDTarget

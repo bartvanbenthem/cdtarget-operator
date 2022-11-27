@@ -116,6 +116,7 @@ func (in *CDTargetSpec) DeepCopyInto(out *CDTargetSpec) {
 			(*out)[key] = val
 		}
 	}
+	in.AgentResources.DeepCopyInto(&out.AgentResources)
 	if in.ImagePullSecrets != nil {
 		in, out := &in.ImagePullSecrets, &out.ImagePullSecrets
 		*out = make([]v1.LocalObjectReference, len(*in))

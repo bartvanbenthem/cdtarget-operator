@@ -48,6 +48,8 @@ type CDTargetSpec struct {
 	AdditionalSelector map[string]string `json:"additionalSelector"`
 	// pipeline agent image
 	AgentImage string `json:"agentImage,omitempty"`
+	// +optional
+	AgentResources corev1.ResourceRequirements `json:"agentResources,omitempty"`
 	// image pull secrets
 	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
 	// +optional

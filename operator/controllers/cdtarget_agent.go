@@ -98,6 +98,10 @@ func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *ap
 								},
 							},
 						},
+						Resources: corev1.ResourceRequirements{
+							Requests: t.Spec.AgentResources.Requests,
+							Limits:   t.Spec.AgentResources.Limits,
+						},
 						Env: []corev1.EnvVar{
 							{
 								Name: "AZP_URL",

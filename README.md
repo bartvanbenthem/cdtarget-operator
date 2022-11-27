@@ -170,11 +170,7 @@ status:
 ## Install KEDA
 ```bash
 # Deploying using the deployment YAML files
-kubectl apply -f https://github.com/kedacore/keda/releases/download/v2.8.0/keda-2.8.0.yaml
-# You can also find the same YAML declarations in our /config 
-# directory on our GitHub repo if you prefer to clone it.
-git clone https://github.com/kedacore/keda && cd keda
-VERSION=2.8.0 make deploy
+kubectl apply -f ../keda/v2.8.0/keda.yaml
 ```
 ## Operator lifecycle manager Installation
 ```bash

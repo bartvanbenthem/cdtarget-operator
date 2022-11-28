@@ -98,6 +98,11 @@ spec:
   - name: cdtarget-regcred
   minReplicaCount: 1
   maxReplicaCount: 3
+  agentResources:
+    requests:
+      cpu: 200m
+    limits:
+      cpu: 200m
   config:
     url: https://dev.azure.com/ORGANIZATION
     poolName: poc-pool

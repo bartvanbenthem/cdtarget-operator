@@ -8832,16 +8832,19 @@ spec:
             secretKeyRef:
               name: cdtarget-proxy
               key: HTTP_PROXY
+              optional: true
         - name: HTTPS_PROXY
           valueFrom:
             secretKeyRef:
               name: cdtarget-proxy
               key: HTTPS_PROXY
+              optional: true
         - name: NO_PROXY
           valueFrom:
             secretKeyRef:
               name: cdtarget-proxy
               key: NO_PROXY
+              optional: true
         image: bartvanbenthem/keda-metrics-apiserver:2.8.0
         imagePullPolicy: Always
         livenessProbe:
@@ -8927,16 +8930,19 @@ spec:
             secretKeyRef:
               name: cdtarget-proxy
               key: HTTP_PROXY
+              optional: true
         - name: HTTPS_PROXY
           valueFrom:
             secretKeyRef:
               name: cdtarget-proxy
               key: HTTPS_PROXY
+              optional: true
         - name: NO_PROXY
           valueFrom:
             secretKeyRef:
               name: cdtarget-proxy
               key: NO_PROXY
+              optional: true
         image: bartvanbenthem/keda:2.8.0
         imagePullPolicy: Always
         livenessProbe:

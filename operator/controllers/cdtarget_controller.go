@@ -104,7 +104,14 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		token = r.tokenSecretForCDTarget(operatorCR)
 		err = r.Create(ctx, token)
 		if err != nil {
-			return ctrl.Result{}, err
+			meta.SetStatusCondition(&operatorCR.Status.Conditions, metav1.Condition{
+				Type:               "ReconcileSuccess",
+				Status:             metav1.ConditionFalse,
+				Reason:             cnadv1alpha1.ReasonOperandSecretFailed,
+				LastTransitionTime: metav1.NewTime(time.Now()),
+				Message:            fmt.Sprintf("unable to update operand Token Secret: %s", err.Error()),
+			})
+			return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
 		}
 	} else if err != nil {
 		logger.Error(err, "Error getting operator CDTarget Token Secret object")
@@ -161,7 +168,14 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		cmport = assets.GetConfigMapFromFile("manifests/cdtarget_ports.yaml")
 		err = r.Create(ctx, cmport)
 		if err != nil {
-			return ctrl.Result{}, err
+			meta.SetStatusCondition(&operatorCR.Status.Conditions, metav1.Condition{
+				Type:               "ReconcileSuccess",
+				Status:             metav1.ConditionFalse,
+				Reason:             cnadv1alpha1.ReasonOperandConfigMapFailed,
+				LastTransitionTime: metav1.NewTime(time.Now()),
+				Message:            fmt.Sprintf("unable to update operand cdtarget-ports Configmap: %s", err.Error()),
+			})
+			return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
 		}
 	} else if err != nil {
 		logger.Error(err, "Error getting operator CDTarget ConfigMap object")

@@ -46,21 +46,6 @@ operator-sdk run bundle docker.io/$USERNAME/$OPERATOR_NAME-bundle:v$VERSION --na
 ```
 
 ```bash
-# configmap to specify the ports
-cat <<EOF | kubectl apply -f -
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: cdtarget-ports
-  namespace: cdtarget-operator
-data:
-  ports: | 
-    443
-    22
-    5986
-    5432
-EOF
-
 #######################################################
 # test cdtarget CR 
 kubectl create ns test
@@ -124,7 +109,6 @@ data:
 EOF
 ```
 
-
 ### Uninstall Operator Lifecycle Manager
 ```bash
 # uninstall OLM
@@ -143,9 +127,6 @@ make deploy IMG=docker.io/$USERNAME/$OPERATOR_NAME:v$VERSION
 # cleanup test deployment
 make undeploy
 ```
-
-## Contributing
-// TODO(user): Add detailed information on how you would like others to contribute to this project
 
 ### How it works
 This project aims to follow the Kubernetes [Operator pattern](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/)

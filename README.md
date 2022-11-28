@@ -129,6 +129,8 @@ What other resources are required:
 //+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=operators.coreos.com,resources=operatorconditions,verbs=get;list;watch
+//+kubebuilder:rbac:groups=keda.sh,resources=scaledobjects,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=keda.sh,resources=triggerauthentications,verbs=get;list;watch;create;update;patch;delete
 ```
 
 ### Target reconciliation loop design
@@ -204,7 +206,7 @@ make manifests
 # docker and github repo username
 export USERNAME='bartvanbenthem'
 # image and bundle version
-export VERSION=0.2.2
+export VERSION=0.2.3
 # operator repo and name
 export OPERATOR_NAME='cdtarget-operator'
 
@@ -304,6 +306,8 @@ data:
     5432
     1433
 EOF
+
+kubectl -n test delete networkpolicies.networking.k8s.io cdtarget-agent-keda
 ```
 
 ### Update Personal Access Token

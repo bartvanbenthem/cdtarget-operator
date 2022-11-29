@@ -206,7 +206,7 @@ make manifests
 # docker and github repo username
 export USERNAME='bartvanbenthem'
 # image and bundle version
-export VERSION=0.2.3
+export VERSION=1.0.0
 # operator repo and name
 export OPERATOR_NAME='cdtarget-operator'
 
@@ -238,7 +238,7 @@ kubectl create ns test
 # prestage the PAT (token) Secret for succesfull Azure AUTH
 kubectl -n test create secret generic cdtarget-token \
                   --from-literal=AZP_TOKEN=$PAT
-# prestage minimal proxy config
+# prestage minimal proxy config for KEDA scaler
 kubectl -n test create secret generic cdtarget-proxy \
                   --from-literal=HTTP_PROXY='' \
                   --from-literal=NO_PROXY='10.0.0.0/8'

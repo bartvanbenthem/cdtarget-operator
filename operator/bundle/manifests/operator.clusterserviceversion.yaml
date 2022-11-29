@@ -16,7 +16,7 @@ metadata:
     capabilities: Basic Install
     operators.operatorframework.io/builder: operator-sdk-v1.24.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
-  name: operator.v0.2.3
+  name: operator.v1.0.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -207,7 +207,7 @@ spec:
                 - --leader-elect
                 command:
                 - /manager
-                image: docker.io/bartvanbenthem/cdtarget-operator:v0.2.3
+                image: docker.io/bartvanbenthem/cdtarget-operator:v1.0.0
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -224,10 +224,10 @@ spec:
                 resources:
                   limits:
                     cpu: 500m
-                    memory: 128Mi
+                    memory: 512Mi
                   requests:
-                    cpu: 10m
-                    memory: 64Mi
+                    cpu: 100m
+                    memory: 256Mi
                 securityContext:
                   allowPrivilegeEscalation: false
                   capabilities:
@@ -293,4 +293,4 @@ spec:
   provider:
     name: gofound
     url: gofound.nl
-  version: 0.2.3
+  version: 1.0.0

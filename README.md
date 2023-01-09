@@ -93,7 +93,7 @@ metadata:
   name: cdtarget-sample
   namespace: test
 spec:
-  agentImage: bartvanbenthem/agent:latest
+  agentImage: bartvanbenthem/azagent-keda:latest
   imagePullSecrets:
   - name: cdtarget-regcred
   minReplicaCount: 1

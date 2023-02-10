@@ -179,14 +179,6 @@ status:
 # Deploying using the deployment YAML files
 kubectl apply -f ../keda/v2.8.0/keda.yaml
 ```
-## Operator lifecycle manager Installation
-```bash
-#######################################################
-# install OLM (if not already present)
-operator-sdk olm install
-operator-sdk olm status
-```
-
 
 # Scaffolding parameters
 ```bash
@@ -206,7 +198,7 @@ make manifests
 # docker and github repo username
 export USERNAME='bartvanbenthem'
 # image and bundle version
-export VERSION=1.1.0
+export VERSION=1.3.0
 # operator repo and name
 export OPERATOR_NAME='cdtarget-operator'
 
@@ -215,18 +207,11 @@ export OPERATOR_NAME='cdtarget-operator'
 make docker-build docker-push IMG=docker.io/$USERNAME/$OPERATOR_NAME:v$VERSION
 ```
 
-## Operator lifecycle manager Deployment
+### Manual Operator Deployment (instead of OLM deployment)
 ```bash
 #######################################################
-# Build the OLM bundle
-make bundle IMG=docker.io/$USERNAME/$OPERATOR_NAME:v$VERSION   
-make bundle-build bundle-push BUNDLE_IMG=docker.io/$USERNAME/$OPERATOR_NAME-bundle:v$VERSION
-```
-
-```bash
-# Deploy OLM bundle
-kubectl create ns 'cdtarget-operator'
-operator-sdk run bundle docker.io/$USERNAME/$OPERATOR_NAME-bundle:v$VERSION --namespace='cdtarget-operator'
+# test and deploy the operator
+make deploy IMG=docker.io/$USERNAME/$OPERATOR_NAME:v$VERSION
 ```
 
 ### Test custom resource
@@ -257,7 +242,7 @@ kubectl -n test describe deployment cdtarget-agent
 
 ```
 
-### Remove CR, CRD & Operator bundle
+### Remove CR, CRD & Operator
 ```bash
 # cleanup test deployment
 kubectl -n test delete -f ../samples/cnad_cdtarget_sample.yaml
@@ -330,21 +315,52 @@ kubectl -n test create secret generic cdtarget-ca --dry-run=client -o yaml \
 kubectl -n test scale deployment cdtarget-agent-keda --replicas=0  
 ```
 
+### Manual Remove Operator, CRD and CR
+```bash
+# cleanup test deployment
+kubectl -n test delete -f ../samples/cnad_cdtarget_sample.yaml
+kubectl delete ns test
+# cleanup test deployment
+make undeploy
+```
+
+## Operator lifecycle manager
+
+### Operator lifecycle manager Installation
+```bash
+#######################################################
+# install OLM (if not already present)
+operator-sdk olm install
+operator-sdk olm status
+```
+
+### Operator lifecycle manager Deployment
+```bash
+#######################################################
+# Build the OLM bundle
+make bundle IMG=docker.io/$USERNAME/$OPERATOR_NAME:v$VERSION   
+make bundle-build bundle-push BUNDLE_IMG=docker.io/$USERNAME/$OPERATOR_NAME-bundle:v$VERSION
+```
+
+```bash
+# Deploy OLM bundle
+kubectl create ns 'cdtarget-operator'
+operator-sdk run bundle docker.io/$USERNAME/$OPERATOR_NAME-bundle:v$VERSION --namespace='cdtarget-operator'
+```
+
+### Remove CR, CRD & Operator Bundle
+```bash
+# cleanup test deployment
+kubectl -n test delete -f ../samples/cnad_cdtarget_sample.yaml
+kubectl delete ns test
+# cleanup OLM bundle & OLM installation
+operator-sdk cleanup operator --delete-all --namespace='cdtarget-operator'
+kubectl delete ns 'cdtarget-operator'
+```
+
 ### Uninstall Operator Lifecycle Manager
 ```bash
 # uninstall OLM
 operator-sdk olm uninstall
 ```
 
-### Manual Operator Deployment (instead of OLM deployment)
-```bash
-#######################################################
-# test and deploy the operator
-make deploy IMG=docker.io/$USERNAME/$OPERATOR_NAME:v$VERSION
-```
-
-### Manual Remove Operator, CRD and CR
-```bash
-# cleanup test deployment
-make undeploy
-```

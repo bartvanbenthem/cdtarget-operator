@@ -17,6 +17,10 @@ func (r *CDTargetReconciler) scaledObjectForCDTarget(t *cnadv1alpha1.CDTarget) *
 		"organizationURLFromEnv": "AZP_URL",
 	}
 
+	for k, v := range t.Spec.TriggerMeta {
+		triggerMeta[k] = v
+	}
+
 	so := &kedav2.ScaledObject{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,

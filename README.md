@@ -206,7 +206,7 @@ make manifests
 # docker and github repo username
 export USERNAME='bartvanbenthem'
 # image and bundle version
-export VERSION=1.0.0
+export VERSION=1.1.0
 # operator repo and name
 export OPERATOR_NAME='cdtarget-operator'
 

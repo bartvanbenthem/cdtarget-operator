@@ -250,5 +250,12 @@ func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *ap
 		},
 	}
 
+	if dep.Spec.Template.Spec.Containers[0].Name == "agent" {
+		for _, env := range t.Spec.Env {
+			dep.Spec.Template.Spec.Containers[0].Env =
+				append(dep.Spec.Template.Spec.Containers[0].Env, env)
+		}
+	}
+
 	return dep
 }

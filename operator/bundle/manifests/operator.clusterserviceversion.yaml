@@ -16,7 +16,7 @@ metadata:
     capabilities: Basic Install
     operators.operatorframework.io/builder: operator-sdk-v1.24.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
-  name: operator.v1.0.0
+  name: operator.v1.1.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -207,7 +207,7 @@ spec:
                 - --leader-elect
                 command:
                 - /manager
-                image: docker.io/bartvanbenthem/cdtarget-operator:v1.0.0
+                image: docker.io/bartvanbenthem/cdtarget-operator:v1.1.0
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -293,4 +293,4 @@ spec:
   provider:
     name: gofound
     url: gofound.nl
-  version: 1.0.0
+  version: 1.1.0

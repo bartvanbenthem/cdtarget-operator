@@ -50,21 +50,28 @@ type CDTargetSpec struct {
 	AdditionalSelector map[string]string `json:"additionalSelector"`
 	// pipeline agent image
 	AgentImage string `json:"agentImage,omitempty"`
+	// +optional
+	AgentResources corev1.ResourceRequirements `json:"agentResources,omitempty"`
 	// image pull secrets
 	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
 	// +optional
 	MinReplicaCount *int32 `json:"minReplicaCount,omitempty"`
 	// +optional
 	MaxReplicaCount *int32 `json:"maxReplicaCount,omitempty"`
+	// Inject additional environment variables to the deployment
+	Env []corev1.EnvVar `json:"env,omitempty"`
 	// reference to secret that contains the the Proxy settings
-	ProxyRef string `json:"proxyRef"`
+	ProxyRef string `json:"proxyRef,omitempty"`
 	// reference to secret that contains the PAT
 	TokenRef string `json:"tokenRef"`
 	// reference to secret that contains the CA certificates
-	CACertRef string `json:"caCertRef"`
+	CACertRef string `json:"caCertRef,omitempty"`
 	// AzureDevPortal is configuring the Azure DevOps pool settings of the Agent
 	// by using additional environment variables.
 	Config AgentConfig `json:"config,omitempty"`
+	// set to add or override the default metadata for the
+	// scaled object trigger metadata
+	TriggerMeta map[string]string `json:"triggerMeta,omitempty"`
 }
 
 // CDTargetStatus defines the observed state of CDTarget
@@ -112,6 +119,11 @@ spec:
   tokenRef: cdtarget-token
   proxyRef: cdtarget-proxy
   caCertRef: cdtarget-ca
+  triggerMeta:
+    demands: "maven,docker"
+  env:
+  - name: INJECTED_ADDITIONAL_ENV
+    value: example-env
   additionalSelector:
     app: cdtarget-agent 
   ip:

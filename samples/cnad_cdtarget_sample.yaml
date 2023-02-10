@@ -13,8 +13,6 @@ spec:
   tokenRef: cdtarget-token
   proxyRef: cdtarget-proxy
   caCertRef: cdtarget-ca
-  triggerMeta:
-    demands: "maven,docker"
   env:
   - name: INJECTED_ADDITIONAL_ENV
     value: example-env

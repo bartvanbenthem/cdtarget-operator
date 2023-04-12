@@ -55,32 +55,6 @@ func boolPointer(b bool) *bool {
 
 func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *appsv1.Deployment {
 
-	var lifecycle corev1.Lifecycle
-	var volumes []corev1.Volume
-	var mounts []corev1.VolumeMount
-
-	if len(t.Spec.CACertRef) > 0 {
-		lifecycle.PostStart.Exec.Command = []string{"/bin/sh", "-c", "update-ca-certificates"}
-
-		var volume corev1.Volume
-		volume.Name = t.Spec.CACertRef
-		volume.VolumeSource = corev1.VolumeSource{
-			Secret: &corev1.SecretVolumeSource{
-				SecretName: t.Spec.CACertRef,
-				Optional:   boolPointer(true),
-			},
-		}
-		volumes = append(volumes, volume)
-
-		mount := corev1.VolumeMount{
-			Name:      t.Spec.CACertRef,
-			MountPath: "/usr/local/share/ca-certificates",
-			ReadOnly:  true,
-		}
-
-		mounts = append(mounts, mount)
-	}
-
 	dep := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      t.Name,
@@ -97,13 +71,10 @@ func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *ap
 					Labels: t.Spec.AdditionalSelector,
 				},
 				Spec: corev1.PodSpec{
-					Volumes:          volumes,
 					ImagePullSecrets: t.Spec.ImagePullSecrets,
 					Containers: []corev1.Container{{
-						Image:        t.Spec.AgentImage,
-						Name:         "agent",
-						VolumeMounts: mounts,
-						Lifecycle:    &lifecycle,
+						Image: t.Spec.AgentImage,
+						Name:  "agent",
 						Resources: corev1.ResourceRequirements{
 							Requests: t.Spec.AgentResources.Requests,
 							Limits:   t.Spec.AgentResources.Limits,
@@ -177,6 +148,42 @@ func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *ap
 				},
 			},
 		},
+	}
+
+	if len(t.Spec.CACertRef) > 0 {
+		/*
+			for i, container := range dep.Spec.Template.Spec.Containers {
+				if container.Name == "agent" {
+					dep.Spec.Template.Spec.Containers[i].Lifecycle.PostStart.Exec.Command =
+						[]string{"/bin/sh", "-c", "update-ca-certificates"}
+				}
+			}
+		*/
+
+		var volume corev1.Volume
+		volume.Name = t.Spec.CACertRef
+		volume.VolumeSource = corev1.VolumeSource{
+			Secret: &corev1.SecretVolumeSource{
+				SecretName: t.Spec.CACertRef,
+				Optional:   boolPointer(true),
+			},
+		}
+		dep.Spec.Template.Spec.Volumes =
+			append(dep.Spec.Template.Spec.Volumes, volume)
+
+		mount := corev1.VolumeMount{
+			Name:      t.Spec.CACertRef,
+			MountPath: "/usr/local/share/ca-certificates",
+			ReadOnly:  true,
+		}
+
+		for i, container := range dep.Spec.Template.Spec.Containers {
+			if container.Name == "agent" {
+				dep.Spec.Template.Spec.Containers[i].VolumeMounts =
+					append(dep.Spec.Template.Spec.Containers[i].VolumeMounts, mount)
+			}
+		}
+
 	}
 
 	if len(t.Spec.Env) > 0 {

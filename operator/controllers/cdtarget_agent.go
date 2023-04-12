@@ -55,7 +55,31 @@ func boolPointer(b bool) *bool {
 
 func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *appsv1.Deployment {
 
-	cmd := []string{"/bin/sh", "-c", "update-ca-certificates"}
+	var lifecycle corev1.Lifecycle
+	var volumes []corev1.Volume
+	var mounts []corev1.VolumeMount
+
+	if len(t.Spec.CACertRef) > 0 {
+		lifecycle.PostStart.Exec.Command = []string{"/bin/sh", "-c", "update-ca-certificates"}
+
+		var volume corev1.Volume
+		volume.Name = t.Spec.CACertRef
+		volume.VolumeSource = corev1.VolumeSource{
+			Secret: &corev1.SecretVolumeSource{
+				SecretName: t.Spec.CACertRef,
+				Optional:   boolPointer(true),
+			},
+		}
+		volumes = append(volumes, volume)
+
+		mount := corev1.VolumeMount{
+			Name:      t.Spec.CACertRef,
+			MountPath: "/usr/local/share/ca-certificates",
+			ReadOnly:  true,
+		}
+
+		mounts = append(mounts, mount)
+	}
 
 	dep := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -73,31 +97,13 @@ func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *ap
 					Labels: t.Spec.AdditionalSelector,
 				},
 				Spec: corev1.PodSpec{
-					Volumes: []corev1.Volume{{
-						Name: t.Spec.CACertRef,
-						VolumeSource: corev1.VolumeSource{
-							Secret: &corev1.SecretVolumeSource{
-								SecretName: t.Spec.CACertRef,
-								Optional:   boolPointer(true),
-							},
-						},
-					}},
+					Volumes:          volumes,
 					ImagePullSecrets: t.Spec.ImagePullSecrets,
 					Containers: []corev1.Container{{
-						Image: t.Spec.AgentImage,
-						Name:  "agent",
-						VolumeMounts: []corev1.VolumeMount{{
-							Name:      t.Spec.CACertRef,
-							MountPath: "/usr/local/share/ca-certificates",
-							ReadOnly:  true,
-						}},
-						Lifecycle: &corev1.Lifecycle{
-							PostStart: &corev1.LifecycleHandler{
-								Exec: &corev1.ExecAction{
-									Command: cmd,
-								},
-							},
-						},
+						Image:        t.Spec.AgentImage,
+						Name:         "agent",
+						VolumeMounts: mounts,
+						Lifecycle:    &lifecycle,
 						Resources: corev1.ResourceRequirements{
 							Requests: t.Spec.AgentResources.Requests,
 							Limits:   t.Spec.AgentResources.Limits,
@@ -166,83 +172,6 @@ func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *ap
 									},
 								},
 							},
-							{
-								Name: "HTTP_PROXY",
-								ValueFrom: &corev1.EnvVarSource{
-									SecretKeyRef: &corev1.SecretKeySelector{
-										LocalObjectReference: corev1.LocalObjectReference{
-											Name: t.Spec.ProxyRef},
-										Optional: boolPointer(true),
-										Key:      "HTTP_PROXY",
-									},
-								},
-							},
-							{
-								Name: "HTTPS_PROXY",
-								ValueFrom: &corev1.EnvVarSource{
-									SecretKeyRef: &corev1.SecretKeySelector{
-										LocalObjectReference: corev1.LocalObjectReference{
-											Name: t.Spec.ProxyRef},
-										Optional: boolPointer(true),
-										Key:      "HTTPS_PROXY",
-									},
-								},
-							},
-							{
-								Name: "PROXY_USER",
-								ValueFrom: &corev1.EnvVarSource{
-									SecretKeyRef: &corev1.SecretKeySelector{
-										LocalObjectReference: corev1.LocalObjectReference{
-											Name: t.Spec.ProxyRef},
-										Optional: boolPointer(true),
-										Key:      "PROXY_USER",
-									},
-								},
-							},
-							{
-								Name: "PROXY_PW",
-								ValueFrom: &corev1.EnvVarSource{
-									SecretKeyRef: &corev1.SecretKeySelector{
-										LocalObjectReference: corev1.LocalObjectReference{
-											Name: t.Spec.ProxyRef},
-										Optional: boolPointer(true),
-										Key:      "PROXY_PW",
-									},
-								},
-							},
-							{
-								Name: "PROXY_URL",
-								ValueFrom: &corev1.EnvVarSource{
-									SecretKeyRef: &corev1.SecretKeySelector{
-										LocalObjectReference: corev1.LocalObjectReference{
-											Name: t.Spec.ProxyRef},
-										Optional: boolPointer(true),
-										Key:      "PROXY_URL",
-									},
-								},
-							},
-							{
-								Name: "FTP_PROXY",
-								ValueFrom: &corev1.EnvVarSource{
-									SecretKeyRef: &corev1.SecretKeySelector{
-										LocalObjectReference: corev1.LocalObjectReference{
-											Name: t.Spec.ProxyRef},
-										Optional: boolPointer(true),
-										Key:      "FTP_PROXY",
-									},
-								},
-							},
-							{
-								Name: "NO_PROXY",
-								ValueFrom: &corev1.EnvVarSource{
-									SecretKeyRef: &corev1.SecretKeySelector{
-										LocalObjectReference: corev1.LocalObjectReference{
-											Name: t.Spec.ProxyRef},
-										Optional: boolPointer(true),
-										Key:      "NO_PROXY",
-									},
-								},
-							},
 						},
 					}},
 				},
@@ -250,11 +179,167 @@ func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *ap
 		},
 	}
 
-	for i, container := range dep.Spec.Template.Spec.Containers {
-		if container.Name == "agent" {
-			for _, env := range t.Spec.Env {
-				dep.Spec.Template.Spec.Containers[i].Env =
-					append(dep.Spec.Template.Spec.Containers[i].Env, env)
+	if len(t.Spec.Env) > 0 {
+		for i, container := range dep.Spec.Template.Spec.Containers {
+			if container.Name == "agent" {
+				for _, env := range t.Spec.Env {
+					dep.Spec.Template.Spec.Containers[i].Env =
+						append(dep.Spec.Template.Spec.Containers[i].Env, env)
+				}
+			}
+		}
+	}
+
+	if len(t.Spec.ProxyRef) > 0 {
+		proxy := []corev1.EnvVar{
+			{
+				Name: "AZP_URL",
+				ValueFrom: &corev1.EnvVarSource{
+					ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "cdtarget-config"},
+						Key: "AZP_URL",
+					},
+				},
+			},
+			{
+				Name: "AZP_POOL",
+				ValueFrom: &corev1.EnvVarSource{
+					ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "cdtarget-config"},
+						Key: "AZP_POOL",
+					},
+				},
+			},
+			{
+				Name: "AZP_WORK",
+				ValueFrom: &corev1.EnvVarSource{
+					ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "cdtarget-config"},
+						Optional: boolPointer(true),
+						Key:      "AZP_WORK",
+					},
+				},
+			},
+			{
+				Name: "AZP_AGENT_NAME",
+				ValueFrom: &corev1.EnvVarSource{
+					ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "cdtarget-config"},
+						Optional: boolPointer(true),
+						Key:      "AZP_AGENT_NAME",
+					},
+				},
+			},
+			{
+				Name: "AGENT_MTU_VALUE",
+				ValueFrom: &corev1.EnvVarSource{
+					ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "cdtarget-config"},
+						Optional: boolPointer(true),
+						Key:      "AGENT_MTU_VALUE",
+					},
+				},
+			},
+			{
+				Name: "AZP_TOKEN",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: t.Spec.TokenRef},
+						Key: "AZP_TOKEN",
+					},
+				},
+			},
+			{
+				Name: "HTTP_PROXY",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: t.Spec.ProxyRef},
+						Optional: boolPointer(true),
+						Key:      "HTTP_PROXY",
+					},
+				},
+			},
+			{
+				Name: "HTTPS_PROXY",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: t.Spec.ProxyRef},
+						Optional: boolPointer(true),
+						Key:      "HTTPS_PROXY",
+					},
+				},
+			},
+			{
+				Name: "PROXY_USER",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: t.Spec.ProxyRef},
+						Optional: boolPointer(true),
+						Key:      "PROXY_USER",
+					},
+				},
+			},
+			{
+				Name: "PROXY_PW",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: t.Spec.ProxyRef},
+						Optional: boolPointer(true),
+						Key:      "PROXY_PW",
+					},
+				},
+			},
+			{
+				Name: "PROXY_URL",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: t.Spec.ProxyRef},
+						Optional: boolPointer(true),
+						Key:      "PROXY_URL",
+					},
+				},
+			},
+			{
+				Name: "FTP_PROXY",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: t.Spec.ProxyRef},
+						Optional: boolPointer(true),
+						Key:      "FTP_PROXY",
+					},
+				},
+			},
+			{
+				Name: "NO_PROXY",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: t.Spec.ProxyRef},
+						Optional: boolPointer(true),
+						Key:      "NO_PROXY",
+					},
+				},
+			},
+		}
+
+		for i, container := range dep.Spec.Template.Spec.Containers {
+			if container.Name == "agent" {
+				for _, env := range proxy {
+					dep.Spec.Template.Spec.Containers[i].Env =
+						append(dep.Spec.Template.Spec.Containers[i].Env, env)
+				}
 			}
 		}
 	}

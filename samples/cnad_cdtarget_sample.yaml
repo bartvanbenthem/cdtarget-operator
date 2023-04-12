@@ -11,8 +11,6 @@ spec:
     url: https://dev.azure.com/DevOps-SST
     poolName: poc-pool
   tokenRef: cdtarget-token
-  proxyRef: cdtarget-proxy
-  caCertRef: cdtarget-ca
   env:
   - name: INJECTED_ADDITIONAL_ENV
     value: example-env

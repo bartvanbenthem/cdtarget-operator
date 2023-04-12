@@ -210,7 +210,7 @@ make manifests
 # docker and github repo username
 export USERNAME='bartvanbenthem'
 # image and bundle version
-export VERSION=1.3.0
+export VERSION=1.4.0
 # operator repo and name
 export OPERATOR_NAME='cdtarget-operator'
 
@@ -219,9 +219,11 @@ export OPERATOR_NAME='cdtarget-operator'
 make docker-build docker-push IMG=docker.io/$USERNAME/$OPERATOR_NAME:v$VERSION
 ```
 
-### Manual Operator Deployment (instead of OLM deployment)
+### Manual Operator Deployment
 ```bash
 #######################################################
+# deploy keda crd
+kubectl apply -f assets/manifests/keda-crd.yaml
 # test and deploy the operator
 make deploy IMG=docker.io/$USERNAME/$OPERATOR_NAME:v$VERSION
 ```
@@ -233,12 +235,7 @@ source ../../00-ENV/env.sh # personal setup to inject PAT
 # test cdtarget CR 
 kubectl create ns test
 # prestage the PAT (token) Secret for succesfull Azure AUTH
-kubectl -n test create secret generic cdtarget-token \
-                  --from-literal=AZP_TOKEN=$PAT
-# prestage minimal proxy config for KEDA scaler
-kubectl -n test create secret generic cdtarget-proxy \
-                  --from-literal=HTTP_PROXY='' \
-                  --from-literal=NO_PROXY='10.0.0.0/8'
+kubectl -n test create secret generic cdtarget-token --from-literal=AZP_TOKEN=$PAT
 # apply cdtarget resource
 # for scaling >1 replica don`t set the agentName field in the CR
 kubectl -n test apply -f ../samples/cnad_cdtarget_sample.yaml
@@ -249,19 +246,8 @@ kubectl -n test describe configmap cdtarget-config
 kubectl -n test describe networkpolicies azure-pipelines-pool
 kubectl -n test describe networkpolicies cdtarget-agent
 kubectl -n test describe scaledobject cdtarget-agent-keda
-kubectl -n test describe horizontalpodautoscalers.autoscaling
 kubectl -n test describe deployment cdtarget-agent
 
-```
-
-### Remove CR, CRD & Operator
-```bash
-# cleanup test deployment
-kubectl -n test delete -f ../samples/cnad_cdtarget_sample.yaml
-kubectl delete ns test
-# cleanup OLM bundle & OLM installation
-operator-sdk cleanup operator --delete-all --namespace='cdtarget-operator'
-kubectl delete ns 'cdtarget-operator'
 ```
 
 ### Create pull secret
@@ -336,7 +322,8 @@ kubectl delete ns test
 make undeploy
 ```
 
-## Operator lifecycle manager
+## Operator lifecycle manager 
+(instead of manual deployment)
 
 ### Operator lifecycle manager Installation
 ```bash
@@ -355,6 +342,8 @@ make bundle-build bundle-push BUNDLE_IMG=docker.io/$USERNAME/$OPERATOR_NAME-bund
 ```
 
 ```bash
+# deploy keda crd
+kubectl apply -f assets/manifests/keda-crd.yaml
 # Deploy OLM bundle
 kubectl create ns 'cdtarget-operator'
 operator-sdk run bundle docker.io/$USERNAME/$OPERATOR_NAME-bundle:v$VERSION --namespace='cdtarget-operator'

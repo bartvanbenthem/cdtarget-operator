@@ -55,11 +55,6 @@ func boolPointer(b bool) *bool {
 
 func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *appsv1.Deployment {
 
-	cmd := []string{"/bin/sh", "-c", "echo", "no certificates to update"}
-	if len(t.Spec.CACertRef) > 0 {
-		cmd = []string{"/bin/sh", "-c", "update-ca-certificates"}
-	}
-
 	dep := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      t.Name,
@@ -83,13 +78,6 @@ func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *ap
 						Resources: corev1.ResourceRequirements{
 							Requests: t.Spec.AgentResources.Requests,
 							Limits:   t.Spec.AgentResources.Limits,
-						},
-						Lifecycle: &corev1.Lifecycle{
-							PostStart: &corev1.LifecycleHandler{
-								Exec: &corev1.ExecAction{
-									Command: cmd,
-								},
-							},
 						},
 						Env: []corev1.EnvVar{
 							{
@@ -160,6 +148,21 @@ func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *ap
 				},
 			},
 		},
+	}
+
+	if len(t.Spec.CACertRef) > 0 {
+		for i, container := range dep.Spec.Template.Spec.Containers {
+			if container.Name == "agent" {
+				lc := &corev1.Lifecycle{
+					PostStart: &corev1.LifecycleHandler{
+						Exec: &corev1.ExecAction{
+							Command: []string{"/bin/sh", "-c", "update-ca-certificates"},
+						},
+					},
+				}
+				dep.Spec.Template.Spec.Containers[i].Lifecycle = lc
+			}
+		}
 	}
 
 	if len(t.Spec.CACertRef) > 0 {

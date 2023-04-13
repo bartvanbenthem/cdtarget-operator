@@ -28,30 +28,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-func (r *CDTargetReconciler) networkPolicyForCDTarget(t *cnadv1alpha1.CDTarget, portList []int32) *netv1.NetworkPolicy {
-	peers := peersForCDTarget(t.Spec.IP)
-	ports := portsForCDTarget(portList)
-
-	net := &netv1.NetworkPolicy{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      t.Name,
-			Namespace: t.Namespace,
-			Labels:    t.Spec.AdditionalSelector,
-		},
-		Spec: netv1.NetworkPolicySpec{
-			PodSelector: metav1.LabelSelector{
-				MatchLabels: t.Spec.AdditionalSelector,
-			},
-			Egress: []netv1.NetworkPolicyEgressRule{{
-				Ports: ports,
-				To:    peers,
-			}},
-		},
-	}
-
-	return net
-}
-
 func peersForCDTarget(list []string) []netv1.NetworkPolicyPeer {
 	var peers []netv1.NetworkPolicyPeer
 
@@ -98,4 +74,28 @@ func portsForCDTarget(list []int32) []netv1.NetworkPolicyPort {
 	}
 
 	return ports
+}
+
+func (r *CDTargetReconciler) networkPolicyForCDTarget(t *cnadv1alpha1.CDTarget, portList []int32) *netv1.NetworkPolicy {
+	peers := peersForCDTarget(t.Spec.IP)
+	ports := portsForCDTarget(portList)
+
+	net := &netv1.NetworkPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      t.Name,
+			Namespace: t.Namespace,
+			Labels:    t.Spec.AdditionalSelector,
+		},
+		Spec: netv1.NetworkPolicySpec{
+			PodSelector: metav1.LabelSelector{
+				MatchLabels: t.Spec.AdditionalSelector,
+			},
+			Egress: []netv1.NetworkPolicyEgressRule{{
+				Ports: ports,
+				To:    peers,
+			}},
+		},
+	}
+
+	return net
 }

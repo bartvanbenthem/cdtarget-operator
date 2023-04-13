@@ -210,7 +210,7 @@ make manifests
 # docker and github repo username
 export USERNAME='bartvanbenthem'
 # image and bundle version
-export VERSION=1.5.3
+export VERSION=1.5.2
 # operator repo and name
 export OPERATOR_NAME='cdtarget-operator'
 
@@ -319,6 +319,8 @@ kubectl -n test delete -f ../samples/cnad_cdtarget_sample.yaml
 kubectl delete ns test
 # cleanup test deployment
 make undeploy
+# cleanup keda crd
+kubectl apply -f assets/manifests/keda-crd.yaml
 ```
 
 ## Operator lifecycle manager 

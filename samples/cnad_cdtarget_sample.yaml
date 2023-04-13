@@ -4,7 +4,7 @@ metadata:
   name: cdtarget-agent-keda
   namespace: test
 spec:
-  agentImage: bartvanbenthem/azagent-keda:latest
+  agentImage: ghcr.io/bartvanbenthem/azagent-keda-20:latest
   minReplicaCount: 1
   maxReplicaCount: 5
   config:

@@ -100,7 +100,7 @@ metadata:
   name: cdtarget-sample
   namespace: test
 spec:
-  agentImage: bartvanbenthem/azagent-keda:latest
+  agentImage: ghcr.io/bartvanbenthem/azagent-keda-20:latest
   imagePullSecrets:
   - name: cdtarget-regcred
   minReplicaCount: 1
@@ -210,13 +210,13 @@ make manifests
 # docker and github repo username
 export USERNAME='bartvanbenthem'
 # image and bundle version
-export VERSION=1.5.2
+export VERSION=1.5.3
 # operator repo and name
 export OPERATOR_NAME='cdtarget-operator'
 
 #######################################################
 # Build the operator image
-make docker-build docker-push IMG=docker.io/$USERNAME/$OPERATOR_NAME:v$VERSION
+make docker-build docker-push IMG=ghcr.io/$USERNAME/$OPERATOR_NAME:v$VERSION
 ```
 
 ### Manual Operator Deployment
@@ -225,7 +225,7 @@ make docker-build docker-push IMG=docker.io/$USERNAME/$OPERATOR_NAME:v$VERSION
 # deploy keda crd
 kubectl apply -f assets/manifests/keda-crd.yaml
 # test and deploy the operator
-make deploy IMG=docker.io/$USERNAME/$OPERATOR_NAME:v$VERSION
+make deploy IMG=ghcr.io/$USERNAME/$OPERATOR_NAME:v$VERSION
 ```
 
 ### Test custom resource
@@ -254,10 +254,9 @@ kubectl -n test describe deployment cdtarget-agent
 ```bash
 # create regcred secret
 kubectl -n test create secret docker-registry cdtarget-regcred \
-          --docker-server='https://index.docker.io/v1/' \
+          --docker-server='https://ghcr.io' \
           --docker-username='bartvanbenthem' \
-          --docker-password=$DOCKERHUB_PW \
-          --docker-email='mail@gofound.nl'
+          --docker-password=$CR_PAT \
 ```
 ### Create & Update Proxy config
 ```bash
@@ -337,8 +336,8 @@ operator-sdk olm status
 ```bash
 #######################################################
 # Build the OLM bundle
-make bundle IMG=docker.io/$USERNAME/$OPERATOR_NAME:v$VERSION   
-make bundle-build bundle-push BUNDLE_IMG=docker.io/$USERNAME/$OPERATOR_NAME-bundle:v$VERSION
+make bundle IMG=ghcr.io/$USERNAME/$OPERATOR_NAME:v$VERSION   
+make bundle-build bundle-push BUNDLE_IMG=ghcr.io/$USERNAME/$OPERATOR_NAME-bundle:v$VERSION
 ```
 
 ```bash
@@ -346,7 +345,7 @@ make bundle-build bundle-push BUNDLE_IMG=docker.io/$USERNAME/$OPERATOR_NAME-bund
 kubectl apply -f assets/manifests/keda-crd.yaml
 # Deploy OLM bundle
 kubectl create ns 'cdtarget-operator'
-operator-sdk run bundle docker.io/$USERNAME/$OPERATOR_NAME-bundle:v$VERSION --namespace='cdtarget-operator'
+operator-sdk run bundle ghcr.io/$USERNAME/$OPERATOR_NAME-bundle:v$VERSION --namespace='cdtarget-operator'
 ```
 
 ### Remove CR, CRD & Operator Bundle

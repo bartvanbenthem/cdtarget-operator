@@ -15,8 +15,8 @@ limitations under the License.
 */
 
 // Package v1alpha1 contains API Schema definitions for the cnad v1alpha1 API group
-//+kubebuilder:object:generate=true
-//+groupName=cnad.gofound.nl
+// +kubebuilder:object:generate=true
+// +groupName=cnad.gofound.nl
 package v1alpha1
 
 import (

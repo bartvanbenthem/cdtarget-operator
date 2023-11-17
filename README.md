@@ -211,11 +211,14 @@ make manifests
 # docker and github repo username
 export USERNAME='bartvanbenthem'
 # image and bundle version
-export VERSION=1.5.4
+export VERSION=1.6.1
 # operator repo and name
 export OPERATOR_NAME='cdtarget-operator'
 
 #######################################################
+source ../00-ENV/env.sh # personal setup to inject PAT
+# login to ghcr.io registry
+echo $CR_PAT | docker login ghcr.io -u USERNAME --password-stdin
 # Build the operator image
 make docker-build docker-push IMG=ghcr.io/$USERNAME/$OPERATOR_NAME:v$VERSION
 ```
@@ -230,7 +233,6 @@ make deploy IMG=ghcr.io/$USERNAME/$OPERATOR_NAME:v$VERSION
 ### Test custom resource
 ```bash
 #######################################################
-source ../00-ENV/env.sh # personal setup to inject PAT
 # test cdtarget CR 
 kubectl create ns test
 # prestage the PAT (token) Secret for succesfull Azure AUTH
@@ -242,7 +244,7 @@ kubectl -n test describe cdtarget cdtarget-agent
 # test CDTarget created objects
 kubectl -n test describe secret cdtarget-token
 kubectl -n test describe configmap cdtarget-config
-kubectl -n test describe networkpolicies azure-pipelines-pool
+kubectl -n test get networkpolicies
 kubectl -n test describe networkpolicies cdtarget-agent
 kubectl -n test describe scaledobject cdtarget-agent-keda
 kubectl -n test describe deployment cdtarget-agent

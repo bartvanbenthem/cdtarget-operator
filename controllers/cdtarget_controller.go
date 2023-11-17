@@ -239,26 +239,27 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	// Fetch NetworkPolicy object azure-pipelines-pool if it exists
 	azp := &netv1.NetworkPolicy{}
 	create = false
-	err = r.Get(ctx, types.NamespacedName{Name: "azure-pipelines-pool",
+	spoolname := fmt.Sprintf("%s-pool", operatorCR.Name)
+	err = r.Get(ctx, types.NamespacedName{Name: spoolname,
 		Namespace: operatorCR.Namespace}, azp)
 	if err != nil && errors.IsNotFound(err) {
-		logger.Info("Existing NetworkPolicy azure-pipelines-pool Not Found")
-		logger.Info("Creating NetworkPolicy azure-pipelines-pool from assets manifests")
+		logger.Info(fmt.Sprintf("Existing NetworkPolicy %s Not Found", spoolname))
+		logger.Info(fmt.Sprintf("Creating NetworkPolicy %s from assets manifests", spoolname))
 		create = true
 	} else if err != nil {
-		logger.Error(err, "Error getting existing CDTArget NetworkPolicy azure-pipelines-pool.")
+		logger.Error(err, fmt.Sprintf("Error getting existing CDTArget NetworkPolicy %s.", spoolname))
 		meta.SetStatusCondition(&operatorCR.Status.Conditions, metav1.Condition{
 			Type:               "ReconcileSuccess",
 			Status:             metav1.ConditionFalse,
 			Reason:             cnadv1alpha1.ReasonNetworkPolicyNotAvailable,
 			LastTransitionTime: metav1.NewTime(time.Now()),
-			Message:            fmt.Sprintf("unable to get operand NetworkPolicy azure-pipelines-pool: %s", err.Error()),
+			Message:            fmt.Sprintf("unable to get operand NetworkPolicy %s: %s", spoolname, err.Error()),
 		})
 		return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
 	}
 
 	azp = assets.GetNetworkPolicyFromFile("manifests/az-pipelines-pool.yaml")
-	azp.ObjectMeta.Name = "azure-pipelines-pool"
+	azp.ObjectMeta.Name = spoolname
 	azp.ObjectMeta.Namespace = operatorCR.Namespace
 	azp.ObjectMeta.Labels = operatorCR.Spec.AdditionalSelector
 	azp.Spec.PodSelector.MatchLabels = operatorCR.Spec.AdditionalSelector

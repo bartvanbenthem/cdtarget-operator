@@ -189,7 +189,8 @@ status:
 ## Install KEDA
 ```bash
 # Deploying using the deployment YAML files
-kubectl apply -f ../keda/v2.8.0/keda.yaml
+kubectl apply --server-side -f \
+  https://github.com/kedacore/keda/releases/download/v2.12.0/keda-2.12.0.yaml
 ```
 
 # Scaffolding parameters
@@ -222,8 +223,6 @@ make docker-build docker-push IMG=ghcr.io/$USERNAME/$OPERATOR_NAME:v$VERSION
 ### Manual Operator Deployment
 ```bash
 #######################################################
-# deploy keda crd
-kubectl apply -f assets/manifests/keda-crd.yaml
 # test and deploy the operator
 make deploy IMG=ghcr.io/$USERNAME/$OPERATOR_NAME:v$VERSION
 ```
@@ -231,14 +230,14 @@ make deploy IMG=ghcr.io/$USERNAME/$OPERATOR_NAME:v$VERSION
 ### Test custom resource
 ```bash
 #######################################################
-source ../../00-ENV/env.sh # personal setup to inject PAT
+source ../00-ENV/env.sh # personal setup to inject PAT
 # test cdtarget CR 
 kubectl create ns test
 # prestage the PAT (token) Secret for succesfull Azure AUTH
 kubectl -n test create secret generic cdtarget-token --from-literal=AZP_TOKEN=$PAT
 # apply cdtarget resource
 # for scaling >1 replica don`t set the agentName field in the CR
-kubectl -n test apply -f ../samples/cnad_cdtarget_sample.yaml
+kubectl -n test apply -f config/samples/cnad_cdtarget_sample.yaml
 kubectl -n test describe cdtarget cdtarget-agent
 # test CDTarget created objects
 kubectl -n test describe secret cdtarget-token
@@ -285,8 +284,6 @@ data:
     443
     22
     5986
-    5432
-    1433
 EOF
 
 kubectl -n test delete networkpolicies.networking.k8s.io cdtarget-agent-keda
@@ -308,19 +305,17 @@ kubectl -n test scale deployment cdtarget-agent-keda --replicas=0
 # in /usr/local/share/ca-certificates/
 # trust store: /etc/ssl/certs/ca-certificates.crt
 kubectl -n test create secret generic cdtarget-ca --dry-run=client -o yaml \
-                --from-file="../samples/CERTIFICATE.crt" | kubectl apply -f -
+                --from-file="config/samples/CERTIFICATE.crt" | kubectl apply -f -
 kubectl -n test scale deployment cdtarget-agent-keda --replicas=0  
 ```
 
 ### Manual Remove Operator, CRD and CR
 ```bash
 # cleanup test deployment
-kubectl -n test delete -f ../samples/cnad_cdtarget_sample.yaml
+kubectl -n test delete -f config/samples/cnad_cdtarget_sample.yaml
 kubectl delete ns test
 # cleanup test deployment
 make undeploy
-# cleanup keda crd
-kubectl apply -f assets/manifests/keda-crd.yaml
 ```
 
 ## Operator lifecycle manager 
@@ -353,7 +348,7 @@ operator-sdk run bundle ghcr.io/$USERNAME/$OPERATOR_NAME-bundle:v$VERSION --name
 ### Remove CR, CRD & Operator Bundle
 ```bash
 # cleanup test deployment
-kubectl -n test delete -f ../samples/cnad_cdtarget_sample.yaml
+kubectl -n test delete -f config/samples/cnad_cdtarget_sample.yaml
 kubectl delete ns test
 # cleanup OLM bundle & OLM installation
 operator-sdk cleanup operator --delete-all --namespace='cdtarget-operator'

@@ -338,8 +338,6 @@ make bundle-build bundle-push BUNDLE_IMG=ghcr.io/$USERNAME/$OPERATOR_NAME-bundle
 ```
 
 ```bash
-# deploy keda crd
-kubectl apply -f assets/manifests/keda-crd.yaml
 # Deploy OLM bundle
 kubectl create ns 'cdtarget-operator'
 operator-sdk run bundle ghcr.io/$USERNAME/$OPERATOR_NAME-bundle:v$VERSION --namespace='cdtarget-operator'

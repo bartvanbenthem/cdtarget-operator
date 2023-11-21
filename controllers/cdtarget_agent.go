@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"fmt"
+
 	cnadv1alpha1 "github.com/bartvanbenthem/cdtarget-operator/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -9,7 +11,7 @@ import (
 
 func (r *CDTargetReconciler) configMapForCDTarget(t *cnadv1alpha1.CDTarget) *corev1.ConfigMap {
 
-	name := "cdtarget-config"
+	name := fmt.Sprintf("%s-config", t.Name)
 
 	data := map[string]string{}
 	data["AZP_POOL"] = string(t.Spec.Config.PoolName)
@@ -85,7 +87,7 @@ func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *ap
 								ValueFrom: &corev1.EnvVarSource{
 									ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
 										LocalObjectReference: corev1.LocalObjectReference{
-											Name: "cdtarget-config"},
+											Name: fmt.Sprintf("%s-config", t.Name)},
 										Key: "AZP_URL",
 									},
 								},
@@ -95,7 +97,7 @@ func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *ap
 								ValueFrom: &corev1.EnvVarSource{
 									ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
 										LocalObjectReference: corev1.LocalObjectReference{
-											Name: "cdtarget-config"},
+											Name: fmt.Sprintf("%s-config", t.Name)},
 										Key: "AZP_POOL",
 									},
 								},
@@ -105,7 +107,7 @@ func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *ap
 								ValueFrom: &corev1.EnvVarSource{
 									ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
 										LocalObjectReference: corev1.LocalObjectReference{
-											Name: "cdtarget-config"},
+											Name: fmt.Sprintf("%s-config", t.Name)},
 										Optional: boolPointer(true),
 										Key:      "AZP_WORK",
 									},
@@ -116,7 +118,7 @@ func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *ap
 								ValueFrom: &corev1.EnvVarSource{
 									ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
 										LocalObjectReference: corev1.LocalObjectReference{
-											Name: "cdtarget-config"},
+											Name: fmt.Sprintf("%s-config", t.Name)},
 										Optional: boolPointer(true),
 										Key:      "AZP_AGENT_NAME",
 									},
@@ -127,7 +129,7 @@ func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *ap
 								ValueFrom: &corev1.EnvVarSource{
 									ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
 										LocalObjectReference: corev1.LocalObjectReference{
-											Name: "cdtarget-config"},
+											Name: fmt.Sprintf("%s-config", t.Name)},
 										Optional: boolPointer(true),
 										Key:      "AGENT_MTU_VALUE",
 									},
@@ -210,7 +212,7 @@ func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *ap
 				ValueFrom: &corev1.EnvVarSource{
 					ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "cdtarget-config"},
+							Name: fmt.Sprintf("%s-config", t.Name)},
 						Key: "AZP_URL",
 					},
 				},
@@ -220,7 +222,7 @@ func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *ap
 				ValueFrom: &corev1.EnvVarSource{
 					ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "cdtarget-config"},
+							Name: fmt.Sprintf("%s-config", t.Name)},
 						Key: "AZP_POOL",
 					},
 				},
@@ -230,7 +232,7 @@ func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *ap
 				ValueFrom: &corev1.EnvVarSource{
 					ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "cdtarget-config"},
+							Name: fmt.Sprintf("%s-config", t.Name)},
 						Optional: boolPointer(true),
 						Key:      "AZP_WORK",
 					},
@@ -241,7 +243,7 @@ func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *ap
 				ValueFrom: &corev1.EnvVarSource{
 					ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "cdtarget-config"},
+							Name: fmt.Sprintf("%s-config", t.Name)},
 						Optional: boolPointer(true),
 						Key:      "AZP_AGENT_NAME",
 					},
@@ -252,7 +254,7 @@ func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *ap
 				ValueFrom: &corev1.EnvVarSource{
 					ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "cdtarget-config"},
+							Name: fmt.Sprintf("%s-config", t.Name)},
 						Optional: boolPointer(true),
 						Key:      "AGENT_MTU_VALUE",
 					},

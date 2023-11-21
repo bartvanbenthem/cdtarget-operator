@@ -288,17 +288,18 @@ func (r *CDTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	// Fetch cdtarget-config ConfigMap object if it exists
 	cmcfg := &corev1.ConfigMap{}
 	create = false
-	err = r.Get(ctx, types.NamespacedName{Name: "cdtarget-config", Namespace: operatorCR.Namespace}, cmcfg)
+	cfgname := fmt.Sprintf("%s-config", operatorCR.Name)
+	err = r.Get(ctx, types.NamespacedName{Name: cfgname, Namespace: operatorCR.Namespace}, cmcfg)
 	if err != nil && errors.IsNotFound(err) {
 		create = true
 	} else if err != nil {
-		logger.Error(err, "Error getting CDTArget ConfigMap.")
+		logger.Error(err, "Error getting CDTArget Config")
 		meta.SetStatusCondition(&operatorCR.Status.Conditions, metav1.Condition{
 			Type:               "ReconcileSuccess",
 			Status:             metav1.ConditionFalse,
 			Reason:             cnadv1alpha1.ReasonConfigMapNotAvailable,
 			LastTransitionTime: metav1.NewTime(time.Now()),
-			Message:            fmt.Sprintf("unable to get operand ConfigMap: %s", err.Error()),
+			Message:            fmt.Sprintf("unable to get operand Config: %s", err.Error()),
 		})
 		return ctrl.Result{}, utilerrors.NewAggregate([]error{err, r.Status().Update(ctx, operatorCR)})
 	}

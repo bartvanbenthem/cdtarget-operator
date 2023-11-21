@@ -211,7 +211,7 @@ make manifests
 # docker and github repo username
 export USERNAME='bartvanbenthem'
 # image and bundle version
-export VERSION=1.6.1
+export VERSION=1.7.4
 # operator repo and name
 export OPERATOR_NAME='cdtarget-operator'
 
@@ -243,7 +243,7 @@ kubectl -n test apply -f config/samples/cnad_cdtarget_sample.yaml
 kubectl -n test describe cdtarget cdtarget-agent
 # test CDTarget created objects
 kubectl -n test describe secret cdtarget-token
-kubectl -n test describe configmap cdtarget-config
+kubectl -n test describe configmap cdtarget-agent-keda-config
 kubectl -n test get networkpolicies
 kubectl -n test describe networkpolicies cdtarget-agent
 kubectl -n test describe scaledobject cdtarget-agent-keda

@@ -243,7 +243,7 @@ kubectl -n test apply -f config/samples/cnad_cdtarget_sample.yaml
 kubectl -n test describe cdtarget cdtarget-agent
 # test CDTarget created objects
 kubectl -n test describe secret cdtarget-token
-kubectl -n test describe configmap cdtarget-agent-keda-config
+kubectl -n test get configmaps
 kubectl -n test get networkpolicies
 kubectl -n test describe networkpolicies cdtarget-agent
 kubectl -n test describe scaledobject cdtarget-agent-keda

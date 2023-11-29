@@ -97,28 +97,28 @@ type AgentConfig struct {
 apiVersion: cnad.gofound.nl/v1alpha1
 kind: CDTarget
 metadata:
-  name: cdtarget-sample
-  namespace: test
+  name: <<cdtarget-sample>>
+  namespace: <<test>>
 spec:
-  agentImage: ghcr.io/bartvanbenthem/azagent-keda-20:latest
+  agentImage: ghcr.io/bartvanbenthem/azagent-keda-22:latest
   imagePullSecrets:
-  - name: cdtarget-regcred
+  - name: <<cdtarget-regcred>>
   minReplicaCount: 1
   maxReplicaCount: 3
   agentResources:
     requests:
-      cpu: 200m
+      cpu: 100m
     limits:
       cpu: 200m
   config:
-    url: https://dev.azure.com/ORGANIZATION
-    poolName: poc-pool
+    url: <<https://dev.azure.com/ORGANIZATION>>
+    poolName: <<pool-name>>
     workDir: 
     mtuValue:
     agentName:
-  tokenRef: cdtarget-token
-  proxyRef: cdtarget-proxy
-  caCertRef: cdtarget-ca
+  tokenRef: <<cdtarget-token>>
+  proxyRef: <<cdtarget-proxy>>
+  caCertRef: <<cdtarget-ca>>
   triggerMeta:
     demands: "maven,docker"
   env:
@@ -127,8 +127,8 @@ spec:
   additionalSelector:
     app: cdtarget-agent 
   ip:
-  - 10.0.0.1
-  - 10.0.0.2
+  - <<10.0.0.1>>
+  - <<10.0.0.2>>
     ...
 ```
 

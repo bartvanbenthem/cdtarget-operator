@@ -6,3 +6,5 @@ metadata:
 data:
   ports: | 
     443
+    22
+    5986

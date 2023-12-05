@@ -73,6 +73,8 @@ func (r *CDTargetReconciler) deploymentForCDTarget(t *cnadv1alpha1.CDTarget) *ap
 					Labels: t.Spec.AdditionalSelector,
 				},
 				Spec: corev1.PodSpec{
+					DNSConfig:        &t.Spec.DNSConfig,
+					DNSPolicy:        t.Spec.DNSPolicy,
 					ImagePullSecrets: t.Spec.ImagePullSecrets,
 					Containers: []corev1.Container{{
 						Image: t.Spec.AgentImage,

@@ -119,6 +119,10 @@ spec:
   tokenRef: <<cdtarget-token>>
   proxyRef: <<cdtarget-proxy>>
   caCertRef: <<cdtarget-ca>>
+  dnsPolicy: <<None>>
+  dnsConfig:
+    nameservers: 
+    - <<8.8.8.8>>
   triggerMeta:
     demands: "maven,docker"
   env:
@@ -211,7 +215,7 @@ make manifests
 # docker and github repo username
 export USERNAME='bartvanbenthem'
 # image and bundle version
-export VERSION=1.7.5
+export VERSION=1.8.0
 # operator repo and name
 export OPERATOR_NAME='cdtarget-operator'
 

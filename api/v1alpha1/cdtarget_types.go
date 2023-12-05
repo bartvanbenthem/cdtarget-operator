@@ -70,6 +70,9 @@ type CDTargetSpec struct {
 	// set to add or override the default metadata for the
 	// scaled object trigger metadata
 	TriggerMeta map[string]string `json:"triggerMeta,omitempty"`
+	// set to override the default DNS config of the agent
+	DNSConfig corev1.PodDNSConfig `json:"dnsConfig,omitempty"`
+	DNSPolicy corev1.DNSPolicy    `json:"dnsPolicy,omitempty"`
 }
 
 // CDTargetStatus defines the observed state of CDTarget

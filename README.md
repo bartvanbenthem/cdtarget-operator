@@ -4,7 +4,7 @@ Automate the configuration & lifecycle of Azure self-hosted pipelines agents and
 ## Operator Design
 
 ###  Describing the problem
-For us as namespace administrators (cluster users) the CRUD functionality on network policy objects are unauthorized by security design and can only be changed by the cluster administrators. To enable end tot end automation, we need the abillity to add target IPs ourselves to a specified set of allowed egress ports trough a Custom Resource, the ports are specified by the the cluster administrators from centralized configuration. An Operator should automatically create or update a network policy containing the specified IPs defined in the CustomResource. The operator should als configure and manage the lifecycle of the self-hosted pipeline agents, be able to inject proxy configurations and CA certificates trough Kubernetes secrets and simplify the enablement of event driven autoscaling.  
+For us as namespace administrators (cluster users) the CRUD functionality on network policy objects are unauthorized by security design and can only be changed by the cluster administrators. To enable end tot end automation, we need the ability to add target IPs ourselves to a specified set of allowed egress ports through a Custom Resource, the ports are specified by the cluster administrators from centralized configuration. An Operator should automatically create or update a network policy containing the specified IPs defined in the CustomResource. The operator should als configure and manage the lifecycle of the self-hosted pipeline agents, be able to inject proxy configurations and CA certificates trough Kubernetes secrets and simplify the enablement of event driven autoscaling.  
 
 ### Designing the API and a CRD
 
